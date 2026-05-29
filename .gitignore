@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Data
+data/raw/
+data/processed/
+data/cache/
+*.csv
+*.parquet
+*.xlsx
+
+# Outputs
+outputs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models
+*.pkl
+*.joblib
+*.h5
+
+# Node (if any)
+node_modules/
