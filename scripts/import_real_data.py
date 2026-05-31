@@ -140,11 +140,19 @@ def import_and_adapt(
         df["rating_date"] = df["report_date"]
         df["trade_date"] = df["report_date"]
 
-    # 3d. 相对估值相关（EIV用每股收益/每股净资产做相对估值）
-    if "total_equity" in df.columns and "net_profit" in df.columns:
-        # 假设总股本=净资产/每股净资产（简化处理）
-        df["eps"] = df["net_profit"] / df["total_equity"].replace(0, 1)
-        df["bps"] = 1.0  # 简化：每股净资产默认为1
+    # 3d. 相对估值相关
+    # 每股收益EPS = 净利润 / 总股本(假设总股本=总资产/股价)
+    if "close_price" in df.columns and "total_assets" in df.columns:
+        implied_shares = df["total_assets"] / df["close_price"].replace(0, 1)
+    else:
+        implied_shares = 10.0
+    df["eps"] = df["net_profit"] / implied_shares.replace(0, 1)
+    df["bps"] = df["total_equity"] / implied_shares.replace(0, 1)
+    # PE_TTM 和 PB
+    df["pe_ttm"] = (df["close_price"] / df["eps"].replace(0, np.nan)).clip(0, 500)
+    df["pb"] = (df["close_price"] / df["bps"].replace(0, np.nan)).clip(0, 50)
+    # market_cap (亿元) = 股价 × 总股本
+    df["market_cap"] = df["close_price"] * implied_shares
 
     # 3e. 市场情绪因子（如原数据没有，填充默认值）
     for col in ["composite_sentiment", "sentiment_label",

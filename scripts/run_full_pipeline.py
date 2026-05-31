@@ -87,8 +87,8 @@ def parse_args() -> argparse.Namespace:
         "--step", "-s",
         action="append",
         choices=STEPS + ["all"],
-        default=["all"],
-        help=f"运行步骤: {', '.join(STEPS + ['all'])} (可多次指定)",
+        default=[],
+        help=f"运行步骤: {', '.join(STEPS + ['all'])} (可多次指定，默认all)",
     )
     parser.add_argument(
         "--config", "-c",
@@ -748,8 +748,8 @@ def main() -> None:
         logger.error(f"配置加载失败: {e}")
         sys.exit(1)
 
-    # 解析步骤
-    if "all" in args.step:
+    # 解析步骤：空列表或无参数 → 全部运行
+    if not args.step or "all" in args.step:
         active_steps = list(STEPS)
     else:
         active_steps = [s for s in STEPS if s in args.step]
@@ -759,6 +759,26 @@ def main() -> None:
     # 逐步执行
     df = pd.DataFrame()
     backtest_results: Dict[str, Any] = {}
+
+    # 自动加载中间结果：如果跳过前几步，尝试加载上一步的缓存数据
+    if "load" not in active_steps and "feature" not in active_steps and "esg" not in active_steps:
+        # 直接从 anomaly 或更后开始 → 加载 esg 步骤的中间结果
+        cached_esg = load_intermediate("03_esg_quant")
+        if cached_esg is not None:
+            df = cached_esg
+            logger.info("已加载 Step 3 (ESG量化) 中间结果，直接进入后续步骤")
+        else:
+            # 尝试从 CSV 加载
+            csv_path = Path("data/processed/03_esg_quant.csv")
+            if csv_path.exists():
+                df = pd.read_csv(csv_path)
+                logger.info(f"从CSV加载中间结果: {csv_path} ({len(df)} 行)")
+    elif "load" not in active_steps and "feature" not in active_steps:
+        # 从 esg 开始
+        cached_feat = load_intermediate("02_features")
+        if cached_feat is not None:
+            df = cached_feat
+            logger.info("已加载 Step 2 (特征工程) 中间结果")
 
     step_funcs = {
         "load": lambda: step_load(args, settings),
