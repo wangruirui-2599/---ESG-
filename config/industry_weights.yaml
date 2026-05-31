@@ -1,0 +1,163 @@
+# ============================================================================
+# ESG Insight Valuator (EIV) - 行业ESG权重配置
+# ============================================================================
+# 定义各行业的 E/S/G 三维度基础权重。
+# 权重的经济学逻辑：
+#   - 环境(E)：高污染/高能耗行业权重更高（如能源、化工、钢铁）
+#   - 社会(S)：劳动密集型/消费类行业权重更高（如零售、医疗、教育）
+#   - 治理(G)：金融/科技等监管敏感型行业权重更高（如银行、保险、互联网）
+# 三维权重之和恒为1.0，由 DynamicWeightEngine 在此基础上叠加政策/舆情动态调整。
+
+esg_weights:
+  # --- 能源与资源 ---
+  - industry: "石油石化"
+    E_weight: 0.45
+    S_weight: 0.25
+    G_weight: 0.30
+
+  - industry: "煤炭"
+    E_weight: 0.50
+    S_weight: 0.25
+    G_weight: 0.25
+
+  - industry: "有色金属"
+    E_weight: 0.40
+    S_weight: 0.30
+    G_weight: 0.30
+
+  - industry: "钢铁"
+    E_weight: 0.45
+    S_weight: 0.25
+    G_weight: 0.30
+
+  # --- 制造业 ---
+  - industry: "基础化工"
+    E_weight: 0.40
+    S_weight: 0.30
+    G_weight: 0.30
+
+  - industry: "建筑材料"
+    E_weight: 0.40
+    S_weight: 0.25
+    G_weight: 0.35
+
+  - industry: "机械设备"
+    E_weight: 0.30
+    S_weight: 0.35
+    G_weight: 0.35
+
+  - industry: "电力设备"
+    E_weight: 0.35
+    S_weight: 0.30
+    G_weight: 0.35
+
+  - industry: "汽车"
+    E_weight: 0.35
+    S_weight: 0.30
+    G_weight: 0.35
+
+  - industry: "家用电器"
+    E_weight: 0.30
+    S_weight: 0.35
+    G_weight: 0.35
+
+  # --- 消费 ---
+  - industry: "食品饮料"
+    E_weight: 0.25
+    S_weight: 0.45
+    G_weight: 0.30
+
+  - industry: "纺织服装"
+    E_weight: 0.25
+    S_weight: 0.45
+    G_weight: 0.30
+
+  - industry: "轻工制造"
+    E_weight: 0.30
+    S_weight: 0.40
+    G_weight: 0.30
+
+  - industry: "商贸零售"
+    E_weight: 0.20
+    S_weight: 0.45
+    G_weight: 0.35
+
+  - industry: "社会服务"
+    E_weight: 0.20
+    S_weight: 0.50
+    G_weight: 0.30
+
+  # --- 医药 ---
+  - industry: "医药生物"
+    E_weight: 0.25
+    S_weight: 0.45
+    G_weight: 0.30
+
+  # --- 金融 ---
+  - industry: "银行"
+    E_weight: 0.15
+    S_weight: 0.30
+    G_weight: 0.55
+
+  - industry: "非银金融"
+    E_weight: 0.15
+    S_weight: 0.30
+    G_weight: 0.55
+
+  - industry: "房地产"
+    E_weight: 0.25
+    S_weight: 0.35
+    G_weight: 0.40
+
+  # --- TMT ---
+  - industry: "电子"
+    E_weight: 0.25
+    S_weight: 0.35
+    G_weight: 0.40
+
+  - industry: "计算机"
+    E_weight: 0.15
+    S_weight: 0.35
+    G_weight: 0.50
+
+  - industry: "传媒"
+    E_weight: 0.15
+    S_weight: 0.45
+    G_weight: 0.40
+
+  - industry: "通信"
+    E_weight: 0.20
+    S_weight: 0.35
+    G_weight: 0.45
+
+  # --- 公用事业 ---
+  - industry: "公用事业"
+    E_weight: 0.35
+    S_weight: 0.35
+    G_weight: 0.30
+
+  - industry: "交通运输"
+    E_weight: 0.30
+    S_weight: 0.35
+    G_weight: 0.35
+
+  - industry: "环保"
+    E_weight: 0.45
+    S_weight: 0.30
+    G_weight: 0.25
+
+  # --- 其他 ---
+  - industry: "国防军工"
+    E_weight: 0.20
+    S_weight: 0.30
+    G_weight: 0.50
+
+  - industry: "建筑装饰"
+    E_weight: 0.30
+    S_weight: 0.35
+    G_weight: 0.35
+
+  - industry: "农林牧渔"
+    E_weight: 0.35
+    S_weight: 0.35
+    G_weight: 0.30

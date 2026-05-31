@@ -1,0 +1,84 @@
+# ============================================================================
+# ESG Insight Valuator (EIV) - 主配置文件
+# ============================================================================
+# 包含项目基础设置、数据源、日志、投资建议和回测参数。
+# 启动时由 src/utils/config.py 自动加载并通过 Pydantic 验证。
+
+# --- 项目基础信息 ---
+project_name: "ESG Insight Valuator"
+version: "1.0.0"
+
+# --- 目录路径 ---
+# 所有路径相对于项目根目录
+data_dir: "data"
+output_dir: "output"
+models_dir: "models"
+
+# --- 数据源配置 ---
+# 定义系统需要加载的各类数据源，支持 CSV 文件和数据库两种类型
+data_sources:
+  # 财务基本面数据
+  - name: "financials"
+    type: "csv"
+    path: "data/raw/financials.csv"
+    encoding: "utf-8"
+
+  # ESG评级数据
+  - name: "esg_ratings"
+    type: "csv"
+    path: "data/raw/esg_ratings.csv"
+    encoding: "utf-8"
+
+  # 市场行情数据
+  - name: "market_data"
+    type: "csv"
+    path: "data/raw/market_data.csv"
+    encoding: "utf-8"
+
+  # 行业分类数据
+  - name: "industry_classification"
+    type: "csv"
+    path: "data/raw/industry.csv"
+    encoding: "utf-8"
+
+  # 舆情文本数据（另类数据）
+  - name: "sentiment_news"
+    type: "csv"
+    path: "data/external/sentiment_news.csv"
+    encoding: "utf-8"
+
+  # 专利数据（另类数据）
+  - name: "patent_data"
+    type: "csv"
+    path: "data/external/patents.csv"
+    encoding: "utf-8"
+
+  # 供应链数据（另类数据）
+  - name: "supply_chain"
+    type: "csv"
+    path: "data/external/supply_chain.csv"
+    encoding: "utf-8"
+
+  # 北向资金数据
+  - name: "northbound_flow"
+    type: "csv"
+    path: "data/external/northbound_flow.csv"
+    encoding: "utf-8"
+
+  # 两融数据
+  - name: "margin_trading"
+    type: "csv"
+    path: "data/external/margin_trading.csv"
+    encoding: "utf-8"
+
+# --- 投资建议参数 ---
+# 用于概率化投资建议的阈值设定
+advice_threshold_buy: 0.15       # 买入阈值：期望估值高于当前价格15%以上建议买入
+advice_threshold_sell: -0.10     # 卖出阈值：期望估值低于当前价格10%以上建议卖出
+confidence_level: 0.95           # 置信水平（用于VaR等风险度量）
+
+# --- 回测参数 ---
+# 历史回测引擎的默认设置
+backtest_start: "2020-01-01"     # 回测起始日期
+backtest_end: "2025-12-31"       # 回测结束日期
+rebalance_frequency: "monthly"   # 调仓频率：monthly / weekly / quarterly

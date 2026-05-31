@@ -1,0 +1,189 @@
+# ============================================================================
+# ESG Insight Valuator (EIV) - 行业关联与风险传导矩阵
+# ============================================================================
+# 定义行业间的上下游关联关系及风险传导系数。
+# 传导逻辑：
+#   - coefficient: 上游行业ESG风险对下游行业的传导强度 (0~1)
+#   - 传导模型使用指数衰减: impact_target = risk_source * coefficient * exp(-distance)
+#   - 系数基于投入产出表和历史相关性数据估算
+# 在 ContagionAnalyzer 中加载并用于构建传导矩阵。
+
+industry_linkages:
+  # ==================== 能源 -> 下游 ====================
+  - source: "石油石化"
+    target: "基础化工"
+    coefficient: 0.85
+
+  - source: "石油石化"
+    target: "交通运输"
+    coefficient: 0.75
+
+  - source: "石油石化"
+    target: "汽车"
+    coefficient: 0.40
+
+  - source: "煤炭"
+    target: "钢铁"
+    coefficient: 0.80
+
+  - source: "煤炭"
+    target: "公用事业"
+    coefficient: 0.90
+
+  - source: "煤炭"
+    target: "建筑材料"
+    coefficient: 0.50
+
+  # ==================== 原材料 -> 制造业 ====================
+  - source: "钢铁"
+    target: "机械设备"
+    coefficient: 0.75
+
+  - source: "钢铁"
+    target: "汽车"
+    coefficient: 0.70
+
+  - source: "钢铁"
+    target: "建筑装饰"
+    coefficient: 0.80
+
+  - source: "钢铁"
+    target: "家用电器"
+    coefficient: 0.50
+
+  - source: "有色金属"
+    target: "电子"
+    coefficient: 0.65
+
+  - source: "有色金属"
+    target: "电力设备"
+    coefficient: 0.70
+
+  - source: "有色金属"
+    target: "汽车"
+    coefficient: 0.55
+
+  - source: "基础化工"
+    target: "医药生物"
+    coefficient: 0.60
+
+  - source: "基础化工"
+    target: "纺织服装"
+    coefficient: 0.55
+
+  - source: "基础化工"
+    target: "轻工制造"
+    coefficient: 0.50
+
+  - source: "基础化工"
+    target: "农林牧渔"
+    coefficient: 0.40
+
+  - source: "建筑材料"
+    target: "建筑装饰"
+    coefficient: 0.85
+
+  - source: "建筑材料"
+    target: "房地产"
+    coefficient: 0.75
+
+  # ==================== 制造 -> 消费/服务 ====================
+  - source: "电子"
+    target: "计算机"
+    coefficient: 0.55
+
+  - source: "电子"
+    target: "通信"
+    coefficient: 0.60
+
+  - source: "电子"
+    target: "传媒"
+    coefficient: 0.35
+
+  - source: "电力设备"
+    target: "公用事业"
+    coefficient: 0.70
+
+  - source: "电力设备"
+    target: "机械设备"
+    coefficient: 0.50
+
+  - source: "机械设备"
+    target: "建筑装饰"
+    coefficient: 0.45
+
+  - source: "机械设备"
+    target: "交通运输"
+    coefficient: 0.50
+
+  # ==================== 金融渗透 ====================
+  - source: "银行"
+    target: "房地产"
+    coefficient: 0.80
+
+  - source: "银行"
+    target: "建筑装饰"
+    coefficient: 0.55
+
+  - source: "银行"
+    target: "非银金融"
+    coefficient: 0.70
+
+  - source: "房地产"
+    target: "建筑装饰"
+    coefficient: 0.65
+
+  - source: "房地产"
+    target: "家用电器"
+    coefficient: 0.40
+
+  # ==================== 消费链 ====================
+  - source: "农林牧渔"
+    target: "食品饮料"
+    coefficient: 0.75
+
+  - source: "食品饮料"
+    target: "商贸零售"
+    coefficient: 0.60
+
+  - source: "纺织服装"
+    target: "商贸零售"
+    coefficient: 0.65
+
+  - source: "轻工制造"
+    target: "商贸零售"
+    coefficient: 0.55
+
+  - source: "汽车"
+    target: "交通运输"
+    coefficient: 0.30
+
+  # ==================== 科技链 ====================
+  - source: "计算机"
+    target: "传媒"
+    coefficient: 0.50
+
+  - source: "通信"
+    target: "计算机"
+    coefficient: 0.55
+
+  - source: "通信"
+    target: "传媒"
+    coefficient: 0.45
+
+  # ==================== 公共基础 ====================
+  - source: "公用事业"
+    target: "有色金属"
+    coefficient: 0.40
+
+  - source: "公用事业"
+    target: "基础化工"
+    coefficient: 0.35
+
+  - source: "交通运输"
+    target: "商贸零售"
+    coefficient: 0.55
+
+  - source: "交通运输"
+    target: "社会服务"
+    coefficient: 0.45
