@@ -237,6 +237,49 @@ def _ensure_output_dir(output_dir: str) -> Path:
 
 
 # ============================================================================
+# 行业中英文映射
+# ============================================================================
+
+INDUSTRY_NAME_MAP = {
+    "银行": "Banking",
+    "非银金融": "Non-bank Financial",
+    "房地产": "Real Estate",
+    "钢铁": "Steel",
+    "化工": "Chemical",
+    "医药生物": "Pharmaceutical & Bio",
+    "电子": "Electronics",
+    "计算机": "Computer",
+    "食品饮料": "Food & Beverage",
+    "汽车": "Automobile",
+    "电力设备": "Electrical Equipment",
+    "有色金属": "Non-ferrous Metal",
+    "采掘": "Mining",
+    "公用事业": "Utilities",
+    "交通运输": "Transportation",
+    "通信": "Communication",
+    "机械设备": "Machinery",
+    "家用电器": "Household Appliances",
+    "国防军工": "Defense & Military",
+    "农林牧渔": "Agriculture",
+    "商业贸易": "Commerce & Trade",
+    "休闲服务": "Leisure Services",
+    "纺织服装": "Textile & Apparel",
+    "轻工制造": "Light Manufacturing",
+    "建筑材料": "Building Materials",
+    "建筑装饰": "Building Decoration",
+    "电力": "Electric Power",
+    "家电": "Home Appliances",
+    "信息技术": "Information Technology",
+    "采矿": "Mining",
+}
+
+
+def get_english_industry_name(chinese_name: str) -> str:
+    """将中文行业名称转换为英文。"""
+    return INDUSTRY_NAME_MAP.get(chinese_name, chinese_name)
+
+
+# ============================================================================
 # 1. ESG 雷达图
 # ============================================================================
 
@@ -296,11 +339,9 @@ def plot_esg_radar(
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(categories, fontsize=12)
 
-    title = "ESG Score Radar"
+    title = f"ESG Score - {get_english_industry_name(industry)}"
     if stock_code:
-        title += f" - {stock_code}"
-    if industry:
-        title += f" ({industry})"
+        title += f" ({stock_code})"
     ax.set_title(title, fontsize=14, fontweight="bold", pad=20)
 
     if output_path:
