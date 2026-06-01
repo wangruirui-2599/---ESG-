@@ -65,6 +65,14 @@
         .advice-box .advice-text { font-size: 2em; font-weight: bold; }
         .warnings { margin-top: 12px; padding: 12px; background: #fff3cd; border-radius: 6px; }
         .warnings li { margin: 4px 0; font-size: 0.9em; }
+        .analysis-box {
+            margin-top: 16px; padding: 16px;
+            background: linear-gradient(135deg, #e8f4f8, #f0f7fa);
+            border-radius: 6px; border-left: 4px solid var(--primary);
+            font-size: 0.92em; line-height: 1.8;
+        }
+        .analysis-box strong { color: var(--primary); display: block; margin-bottom: 8px; }
+        .analysis-box p { margin: 8px 0; }
         .footer { text-align: center; padding: 20px; color: var(--gray); font-size: 0.85em; }
         .progress-bar {
             height: 8px; border-radius: 4px; background: #e9ecef; overflow: hidden; margin: 8px 0;
@@ -78,8 +86,8 @@
         <!-- 头部 -->
         <div class="header">
             <h1>📊 ESG Insight Valuator</h1>
-            <p>ESG智能估值分析报告 | 2026-06-01 13:34</p>
-            <p style="font-size:0.85em;">标的: 600006 | 行业: 医药生物</p>
+            <p>ESG智能估值分析报告 | 2026-06-01 13:56</p>
+            <p style="font-size:0.85em;">标的: 600005 | 行业: 家电</p>
         </div>
 
         <!-- 1. ESG评分概览 -->
@@ -87,27 +95,33 @@
             <h2>🌱 ESG 评分概览</h2>
             <div class="metric-grid">
                 <div class="metric">
-                    <div class="value">65.29</div>
+                    <div class="value">64.86</div>
                     <div class="label">环境 (E)</div>
                 </div>
                 <div class="metric">
-                    <div class="value">84.38</div>
+                    <div class="value">74.53</div>
                     <div class="label">社会 (S)</div>
                 </div>
                 <div class="metric">
-                    <div class="value">70.68</div>
+                    <div class="value">72.62</div>
                     <div class="label">治理 (G)</div>
                 </div>
                 <div class="metric">
-                    <div class="value">73.45</div>
+                    <div class="value">70.67</div>
                     <div class="label">ESG 综合评分</div>
                 </div>
             </div>
             
             <p style="margin-top:12px;">
-                📈 ESG趋势: <strong>改善</strong>
-                (动量: 0.0401)
+                📈 ESG趋势: <strong>显著改善</strong>
+                (动量: 0.0294)
             </p>
+            
+            
+            <div class="analysis-box">
+                <strong>📋 ESG深度分析</strong>
+                <p>ESG综合得分71分，处于良好水平。</p><p>环境(E)维度65分（中等），社会(S)维度75分（良好），治理(G)维度73分（良好）。</p><p>三维度发展较为均衡（极差仅10分），ESG治理结构相对完善。</p>
+            </div>
             
         </div>
 
@@ -116,15 +130,15 @@
             <h2>💰 多情景 DCF 估值分析</h2>
             <div class="metric-grid">
                 <div class="metric">
-                    <div class="value">1.98</div>
+                    <div class="value">2.05</div>
                     <div class="label">期望估值（元/股）</div>
                 </div>
                 <div class="metric">
-                    <div class="value">61.75</div>
+                    <div class="value">95.85</div>
                     <div class="label">当前股价</div>
                 </div>
                 <div class="metric negative">
-                    <div class="value">-96.1%</div>
+                    <div class="value">-97.9%</div>
                     <div class="label">期望上行空间</div>
                 </div>
             </div>
@@ -137,31 +151,37 @@
                 <tr>
                     <td>乐观</td>
                     <td>25%</td>
-                    <td>2.38</td>
+                    <td>2.46</td>
                     <td style="color:#E74C3C">
-                        -96.2%
+                        -97.4%
                     </td>
                 </tr>
                 
                 <tr>
                     <td>中性</td>
                     <td>50%</td>
-                    <td>1.98</td>
+                    <td>2.05</td>
                     <td style="color:#E74C3C">
-                        -96.1%
+                        -97.9%
                     </td>
                 </tr>
                 
                 <tr>
                     <td>悲观</td>
                     <td>25%</td>
-                    <td>1.48</td>
+                    <td>1.54</td>
                     <td style="color:#E74C3C">
-                        -97.6%
+                        -98.4%
                     </td>
                 </tr>
                 
             </table>
+            
+            <div class="analysis-box">
+                <strong>📋 估值深度分析</strong>
+                <p>当前股价95.85元，概率加权期望估值2.05元，下行风险97.9%。</p><p>乐观情景估值2.46元，悲观情景估值1.54元，情景间估值跨度45%，估值区间合理。</p><p>当前价格高于期望估值，建议谨慎评估风险。</p>
+            </div>
+            
         </div>
 
         <!-- 3. 异常检测 -->
@@ -169,7 +189,7 @@
             <h2>🔍 财务异常检测</h2>
             <div class="metric-grid">
                 <div class="metric positive">
-                    <div class="value">-4.1%</div>
+                    <div class="value">16.3%</div>
                     <div class="label">异常概率</div>
                 </div>
                 <div class="metric">
@@ -178,10 +198,16 @@
                 </div>
             </div>
             <div class="progress-bar">
-                <div class="progress-fill" style="width:-4.09%;
+                <div class="progress-fill" style="width:16.33%;
                     background:#2ECC71;">
                 </div>
             </div>
+            
+            <div class="analysis-box">
+                <strong>📋 异常检测深度分析</strong>
+                <p>异常概率16.3%，风险等级：低风险。</p><p>财务异常概率较低，基本面数据质量良好。</p>
+            </div>
+            
         </div>
 
         <!-- 4. 投资建议 -->
@@ -197,9 +223,9 @@
                 <strong>⚠ 风险提示:</strong>
                 <ul>
                 
-                    <li>⚠ 行业风险: 集采降价, 药品安全事件, 专利到期</li>
+                    <li>⚠ 行业风险: 原材料成本, 贸易摩擦, 房地产下行</li>
                 
-                    <li>⚠ ESG焦点: 社会(S)和治理(G)并重，药品安全和研发创新是核心</li>
+                    <li>⚠ ESG焦点: 环境(E)和治理(G)并重，能效和产品生命周期管理</li>
                 
                 </ul>
             </div>
@@ -207,7 +233,7 @@
 
             <div class="metric-grid" style="margin-top:16px;">
                 <div class="metric">
-                    <div class="value">-96.11%</div>
+                    <div class="value">-97.86%</div>
                     <div class="label">期望上行空间</div>
                 </div>
                 <div class="metric">
@@ -215,12 +241,12 @@
                     <div class="label">风险收益不对称比</div>
                 </div>
                 <div class="metric">
-                    <div class="value">-99.80</div>
+                    <div class="value">-100.99</div>
                     <div class="label">近似夏普比率</div>
                 </div>
                 
                 <div class="metric">
-                    <div class="value">改善</div>
+                    <div class="value">显著改善</div>
                     <div class="label">ESG趋势</div>
                 </div>
                 
@@ -232,7 +258,7 @@
 
         <!-- 尾部 -->
         <div class="footer">
-            <p>ESG Insight Valuator v1.0.0 | 报告生成时间: 2026-06-01 13:34</p>
+            <p>ESG Insight Valuator v1.0.0 | 报告生成时间: 2026-06-01 13:56</p>
             <p>本报告仅供参考，不构成投资建议。投资有风险，入市需谨慎。</p>
         </div>
 

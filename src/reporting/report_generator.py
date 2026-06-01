@@ -93,6 +93,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .advice-box .advice-text { font-size: 2em; font-weight: bold; }
         .warnings { margin-top: 12px; padding: 12px; background: #fff3cd; border-radius: 6px; }
         .warnings li { margin: 4px 0; font-size: 0.9em; }
+        .analysis-box {
+            margin-top: 16px; padding: 16px;
+            background: linear-gradient(135deg, #e8f4f8, #f0f7fa);
+            border-radius: 6px; border-left: 4px solid var(--primary);
+            font-size: 0.92em; line-height: 1.8;
+        }
+        .analysis-box strong { color: var(--primary); display: block; margin-bottom: 8px; }
+        .analysis-box p { margin: 8px 0; }
         .footer { text-align: center; padding: 20px; color: var(--gray); font-size: 0.85em; }
         .progress-bar {
             height: 8px; border-radius: 4px; background: #e9ecef; overflow: hidden; margin: 8px 0;
@@ -137,6 +145,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 (动量: {{ "%.4f"|format(esg.momentum|float) if esg.momentum else 'N/A' }})
             </p>
             {% endif %}
+            {% if chart_analyses.esg %}
+            <div class="analysis-box">
+                <strong>📋 ESG深度分析</strong>
+                <p>{{ chart_analyses.esg | replace('\n\n', '</p><p>') | safe }}</p>
+            </div>
+            {% endif %}
         </div>
 
         <!-- 2. 估值分析 -->
@@ -172,6 +186,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 </tr>
                 {% endfor %}
             </table>
+            {% if chart_analyses.valuation %}
+            <div class="analysis-box">
+                <strong>📋 估值深度分析</strong>
+                <p>{{ chart_analyses.valuation | replace('\n\n', '</p><p>') | safe }}</p>
+            </div>
+            {% endif %}
         </div>
 
         <!-- 3. 异常检测 -->
@@ -192,6 +212,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     background:{{ '#2ECC71' if anomaly.probability < 0.3 else '#E67E22' if anomaly.probability < 0.6 else '#E74C3C' }};">
                 </div>
             </div>
+            {% if chart_analyses.anomaly %}
+            <div class="analysis-box">
+                <strong>📋 异常检测深度分析</strong>
+                <p>{{ chart_analyses.anomaly | replace('\n\n', '</p><p>') | safe }}</p>
+            </div>
+            {% endif %}
         </div>
 
         <!-- 4. 投资建议 -->
@@ -288,6 +314,11 @@ MARKDOWN_TEMPLATE = """# 📊 ESG Insight Valuator — 分析报告
 
 ESG 动量: {{ "%.4f"|format(esg.momentum|float) if esg.momentum else 'N/A' }}
 
+{% if chart_analyses.esg %}
+> 📋 **ESG深度分析**
+> {{ chart_analyses.esg | replace('\n\n', '\n>\n> ') }}
+
+{% endif %}
 ---
 
 ## 💰 DCF 多情景估值
@@ -304,6 +335,11 @@ ESG 动量: {{ "%.4f"|format(esg.momentum|float) if esg.momentum else 'N/A' }}
 | {{ s.name }} | {{ "%.0f"|format(s.probability*100) }}% | {{ "%.2f"|format(s.intrinsic_value|float) }} | {{ "%+.1f"|format(s.upside_pct|float) }}% |
 {% endfor %}
 
+{% if chart_analyses.valuation %}
+> 📋 **估值深度分析**
+> {{ chart_analyses.valuation | replace('\n\n', '\n>\n> ') }}
+
+{% endif %}
 ---
 
 ## 🔍 财务异常检测
@@ -311,6 +347,11 @@ ESG 动量: {{ "%.4f"|format(esg.momentum|float) if esg.momentum else 'N/A' }}
 - **异常概率**: {{ "%.1f"|format(anomaly.probability*100) }}%
 - **风险等级**: {{ anomaly.risk_level }}
 
+{% if chart_analyses.anomaly %}
+> 📋 **异常检测深度分析**
+> {{ chart_analyses.anomaly | replace('\n\n', '\n>\n> ') }}
+
+{% endif %}
 ---
 
 ## 🎯 投资建议
@@ -411,6 +452,7 @@ class ReportGenerator:
         anomaly_data: Optional[Dict[str, Any]] = None,
         advice_data: Optional[Dict[str, Any]] = None,
         backtest_data: Optional[Dict[str, Any]] = None,
+        chart_analyses: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         构建 Jinja2 模板上下文。
@@ -431,6 +473,8 @@ class ReportGenerator:
             投资建议数据
         backtest_data : dict, optional
             回测数据
+        chart_analyses : dict, optional
+            图表中文分析文本 {'esg': '...', 'valuation': '...', 'anomaly': '...'}
 
         Returns
         -------
@@ -476,6 +520,7 @@ class ReportGenerator:
                 "key_metrics": advice.get("key_metrics", {}),
             },
             "backtest": backtest_data,
+            "chart_analyses": chart_analyses or {},
         }
         return context
 

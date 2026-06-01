@@ -240,6 +240,20 @@ def _ensure_output_dir(output_dir: str) -> Path:
 # 1. ESG 雷达图
 # ============================================================================
 
+def _score_label(score: float) -> str:
+    """根据分数返回评级标签。"""
+    if score >= 80:
+        return "优秀"
+    elif score >= 70:
+        return "良好"
+    elif score >= 60:
+        return "中等"
+    elif score >= 50:
+        return "偏低"
+    else:
+        return "较弱"
+
+
 def plot_esg_radar(
     e_score: float,
     s_score: float,
@@ -248,30 +262,18 @@ def plot_esg_radar(
     industry: str = "",
     stock_code: str = "",
     output_path: Optional[str] = None,
-) -> plt.Figure:
+) -> Tuple[plt.Figure, str]:
     """
     绘制 ESG 三维度雷达图。
 
-    Parameters
-    ----------
-    e_score, s_score, g_score : float
-        各维度评分 (0-100)
-    esg_total : float
-        ESG 总分
-    industry : str
-        行业名称
-    stock_code : str
-        股票代码
-    output_path : str, optional
-        保存路径
-
     Returns
     -------
-    matplotlib.figure.Figure
+    (matplotlib.figure.Figure, str)
+        图表对象和分析文本
     """
     categories = ["环境 (E)", "社会 (S)", "治理 (G)"]
     values = [e_score, s_score, g_score]
-    values += values[:1]  # 闭合
+    values += values[:1]
 
     angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
     angles += angles[:1]
@@ -280,30 +282,21 @@ def plot_esg_radar(
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
 
-    # 绘制背景网格
     ax.set_rlabel_position(30)
     ax.set_yticks([20, 40, 60, 80, 100])
     ax.set_yticklabels(["20", "40", "60", "80", "100"], fontsize=8)
 
-    # 填充区域
     ax.fill(angles, values, color=COLOR_PALETTE["primary"], alpha=0.25)
     ax.plot(angles, values, color=COLOR_PALETTE["primary"], linewidth=2, marker="o", markersize=8)
 
-    # 标注数值
     for angle, value, cat in zip(angles[:-1], values[:-1], categories):
-        ax.annotate(
-            f"{value:.0f}",
-            xy=(angle, value),
-            xytext=(6, 6),
-            textcoords="offset points",
-            fontsize=11,
-            fontweight="bold",
-        )
+        ax.annotate(f"{value:.0f}", xy=(angle, value),
+                    xytext=(6, 6), textcoords="offset points", fontsize=11, fontweight="bold")
 
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(categories, fontsize=12)
 
-    title = f"ESG 评分雷达图"
+    title = "ESG 评分雷达图"
     if stock_code:
         title += f" - {stock_code}"
     if industry:
@@ -314,7 +307,39 @@ def plot_esg_radar(
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
         logger.info(f"雷达图已保存: {output_path}")
 
-    return fig
+    # ---- 生成具体的中文分析 ----
+    dims = {"环境(E)": e_score, "社会(S)": s_score, "治理(G)": g_score}
+    best_dim = max(dims, key=dims.get)
+    worst_dim = min(dims, key=dims.get)
+    dim_labels = {k: _score_label(v) for k, v in dims.items()}
+    spread = max(dims.values()) - min(dims.values())
+
+    lines = [
+        f"ESG综合得分{esg_total:.0f}分，处于{_score_label(esg_total)}水平。",
+        f"环境(E)维度{e_score:.0f}分（{dim_labels['环境(E)']}），"
+        f"社会(S)维度{s_score:.0f}分（{dim_labels['社会(S)']}），"
+        f"治理(G)维度{g_score:.0f}分（{dim_labels['治理(G)']}）。",
+    ]
+
+    if spread >= 15:
+        lines.append(
+            f"三维度分化明显，{best_dim}得分最高（{dims[best_dim]:.0f}分），"
+            f"{worst_dim}得分最低（{dims[worst_dim]:.0f}分），差距达{spread:.0f}分，"
+            f"建议重点关注{worst_dim}的改善。"
+        )
+    else:
+        lines.append(f"三维度发展较为均衡（极差仅{spread:.0f}分），ESG治理结构相对完善。")
+
+    # 具体建议
+    if e_score < 60:
+        lines.append(f"环境得分偏低（{e_score:.0f}分），建议加强碳排放管理和清洁能源使用比例。")
+    if s_score < 60:
+        lines.append(f"社会得分偏低（{s_score:.0f}分），建议关注员工福利和供应链社会责任。")
+    if g_score < 60:
+        lines.append(f"治理得分偏低（{g_score:.0f}分），建议提升董事会独立性和信息披露透明度。")
+
+    analysis_text = "\n\n".join(lines)
+    return fig, analysis_text
 
 
 # ============================================================================
@@ -324,38 +349,20 @@ def plot_esg_radar(
 def plot_industry_weight_heatmap(
     weight_df: pd.DataFrame,
     output_path: Optional[str] = None,
-) -> plt.Figure:
+) -> Tuple[plt.Figure, str]:
     """
     绘制行业 ESG 权重热力图。
 
-    Parameters
-    ----------
-    weight_df : pd.DataFrame
-        权重表，包含 industry, E_weight, S_weight, G_weight 列
-    output_path : str, optional
-        保存路径
-
     Returns
     -------
-    matplotlib.figure.Figure
+    (matplotlib.figure.Figure, str)
     """
     fig, ax = plt.subplots(figsize=(10, max(8, len(weight_df) * 0.35)))
 
-    heatmap_data = weight_df.set_index("industry")[
-        ["E_weight", "S_weight", "G_weight"]
-    ]
+    heatmap_data = weight_df.set_index("industry")[["E_weight", "S_weight", "G_weight"]]
 
-    sns.heatmap(
-        heatmap_data,
-        annot=True,
-        fmt=".2f",
-        cmap="YlOrRd",
-        vmin=0,
-        vmax=0.6,
-        linewidths=0.5,
-        cbar_kws={"label": "权重"},
-        ax=ax,
-    )
+    sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="YlOrRd",
+                vmin=0, vmax=0.6, linewidths=0.5, cbar_kws={"label": "权重"}, ax=ax)
 
     ax.set_title("行业 ESG 维度权重分布", fontsize=14, fontweight="bold")
     ax.set_xlabel("ESG 维度", fontsize=11)
@@ -365,7 +372,17 @@ def plot_industry_weight_heatmap(
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
         logger.info(f"热力图已保存: {output_path}")
 
-    return fig
+    # ---- 分析文本 ----
+    lines = []
+    for _, row in weight_df.iterrows():
+        ind = row.get("industry", "?")
+        ew, sw, gw = row.get("E_weight", 0), row.get("S_weight", 0), row.get("G_weight", 0)
+        max_w = max(ew, sw, gw)
+        focus = "环境(E)" if max_w == ew else "社会(S)" if max_w == sw else "治理(G)"
+        lines.append(f"{ind}：{focus}权重最高（{max_w:.0%}），"
+                     f"反映该行业ESG核心关切在{focus}维度。")
+    analysis_text = "\n".join(lines)
+    return fig, analysis_text
 
 
 # ============================================================================
@@ -375,63 +392,41 @@ def plot_industry_weight_heatmap(
 def plot_dcf_scenario_waterfall(
     scenario_results: Dict[str, Any],
     output_path: Optional[str] = None,
-) -> plt.Figure:
+) -> Tuple[plt.Figure, str]:
     """
     绘制 DCF 多情景估值对比图。
 
-    Parameters
-    ----------
-    scenario_results : dict
-        DCF估值结果（来自 ScenarioValuator.value_expected()）
-    output_path : str, optional
-        保存路径
-
     Returns
     -------
-    matplotlib.figure.Figure
+    (matplotlib.figure.Figure, str)
     """
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-    # 左图：情景估值柱状图
     scenarios = scenario_results.get("scenarios", [])
     names = [s["name"] for s in scenarios]
     ivalues = [s["intrinsic_value"] for s in scenarios]
     probs = [s["probability"] for s in scenarios]
+    current_price = scenario_results.get("current_price", 0)
+    expected_value = scenario_results.get("expected_value", 0)
 
     colors = [COLOR_PALETTE["green"], COLOR_PALETTE["blue"], COLOR_PALETTE["red"]]
     axes[0].bar(names, ivalues, color=colors[:len(names)], alpha=0.8, edgecolor="white")
-    axes[0].axhline(
-        y=scenario_results.get("current_price", 0),
-        color="black",
-        linestyle="--",
-        linewidth=2,
-        label=f"当前价格 {scenario_results.get('current_price', 0):.2f}",
-    )
-    axes[0].axhline(
-        y=scenario_results.get("expected_value", 0),
-        color=COLOR_PALETTE["primary"],
-        linestyle="-",
-        linewidth=2,
-        label=f"期望估值 {scenario_results.get('expected_value', 0):.2f}",
-    )
+    axes[0].axhline(y=current_price, color="black", linestyle="--", linewidth=2,
+                    label=f"当前价格 {current_price:.2f}")
+    axes[0].axhline(y=expected_value, color=COLOR_PALETTE["primary"], linestyle="-", linewidth=2,
+                    label=f"期望估值 {expected_value:.2f}")
 
-    # 标注概率
     for i, (v, p) in enumerate(zip(ivalues, probs)):
-        axes[0].annotate(
-            f"P={p:.0%}", (i, v), textcoords="offset points",
-            xytext=(0, 10), ha="center", fontsize=10,
-        )
+        axes[0].annotate(f"P={p:.0%}", (i, v), textcoords="offset points",
+                         xytext=(0, 10), ha="center", fontsize=10)
 
     axes[0].set_title("DCF 多情景估值对比", fontsize=13, fontweight="bold")
     axes[0].set_ylabel("每股内在价值（元）", fontsize=11)
     axes[0].legend(loc="upper left", fontsize=9)
 
-    # 右图：概率饼图
     wedges, texts, autotexts = axes[1].pie(
         probs, labels=names, autopct="%1.1f%%",
-        colors=colors[:len(names)],
-        startangle=90, explode=(0.05, 0, 0.05),
-    )
+        colors=colors[:len(names)], startangle=90, explode=(0.05, 0, 0.05))
     for at in autotexts:
         at.set_fontweight("bold")
     axes[1].set_title("情景概率分布", fontsize=13, fontweight="bold")
@@ -441,7 +436,30 @@ def plot_dcf_scenario_waterfall(
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
         logger.info(f"瀑布图已保存: {output_path}")
 
-    return fig
+    # ---- 分析文本 ----
+    upside = (expected_value - current_price) / current_price * 100 if current_price > 0 else 0
+    opt_val = ivalues[0] if len(ivalues) > 0 else 0
+    pes_val = ivalues[-1] if len(ivalues) > 1 else 0
+    valuation_gap = (opt_val - pes_val) / expected_value * 100 if expected_value > 0 else 0
+
+    lines = [
+        f"当前股价{current_price:.2f}元，概率加权期望估值{expected_value:.2f}元，"
+        f"{'上行空间' if upside >= 0 else '下行风险'}{abs(upside):.1f}%。",
+        f"乐观情景（概率{probs[0]:.0%}）估值{opt_val:.2f}元，"
+        f"悲观情景（概率{probs[-1]:.0%}）估值{pes_val:.2f}元，"
+        f"情景间估值跨度{valuation_gap:.0f}%，{'不确定性较高' if valuation_gap > 50 else '估值区间合理'}。",
+    ]
+    if upside > 15:
+        lines.append(f"当前价格显著低于期望估值，安全边际充足，建议关注买入机会。")
+    elif upside > 0:
+        lines.append(f"当前价格略低于期望估值，存在一定上行空间，建议逢低布局。")
+    elif upside > -10:
+        lines.append(f"当前价格接近期望估值，估值基本合理，建议持有观望。")
+    else:
+        lines.append(f"当前价格高于期望估值，估值偏高，建议谨慎追高。")
+
+    analysis_text = "\n\n".join(lines)
+    return fig, analysis_text
 
 
 # ============================================================================
@@ -451,24 +469,16 @@ def plot_dcf_scenario_waterfall(
 def plot_factor_contribution(
     fusion_result: Dict[str, Any],
     output_path: Optional[str] = None,
-) -> plt.Figure:
+) -> Tuple[plt.Figure, str]:
     """
     绘制四因子贡献可视化。
 
-    Parameters
-    ----------
-    fusion_result : dict
-        四因子融合结果
-    output_path : str, optional
-        保存路径
-
     Returns
     -------
-    matplotlib.figure.Figure
+    (matplotlib.figure.Figure, str)
     """
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-    # 左图：贡献柱状图
     contribs = {
         "DCF估值": fusion_result.get("dcf_contrib", 0),
         "相对估值": fusion_result.get("relative_contrib", 0),
@@ -481,34 +491,25 @@ def plot_factor_contribution(
               COLOR_PALETTE["green"], COLOR_PALETTE["purple"]]
 
     bars = axes[0].bar(names, values, color=colors, alpha=0.85, edgecolor="white")
-    axes[0].axhline(
-        y=fusion_result.get("final_value", 0),
-        color="black", linestyle="--", linewidth=2,
-        label=f"综合估值: {fusion_result.get('final_value', 0):.2f}",
-    )
+    final_val = fusion_result.get("final_value", 0)
+    axes[0].axhline(y=final_val, color="black", linestyle="--", linewidth=2,
+                    label=f"综合估值: {final_val:.2f}")
 
-    # 标注数值
     for bar, val in zip(bars, values):
-        axes[0].text(
-            bar.get_x() + bar.get_width() / 2, bar.get_height() + max(values) * 0.02,
-            f"{val:.2f}", ha="center", fontsize=10,
-        )
+        axes[0].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max(values) * 0.02,
+                     f"{val:.2f}", ha="center", fontsize=10)
 
     axes[0].set_title("四因子贡献分解", fontsize=13, fontweight="bold")
     axes[0].set_ylabel("估值贡献（元）", fontsize=11)
     axes[0].legend(fontsize=9)
 
-    # 右图：占比饼图
     pcts = [
         fusion_result.get("dcf_contrib_pct", 25),
         fusion_result.get("relative_contrib_pct", 25),
         fusion_result.get("esg_contrib_pct", 25),
         fusion_result.get("sentiment_contrib_pct", 25),
     ]
-    axes[1].pie(
-        pcts, labels=names, autopct="%1.1f%%",
-        colors=colors, startangle=90,
-    )
+    axes[1].pie(pcts, labels=names, autopct="%1.1f%%", colors=colors, startangle=90)
     axes[1].set_title("因子贡献占比", fontsize=13, fontweight="bold")
 
     plt.tight_layout()
@@ -516,7 +517,17 @@ def plot_factor_contribution(
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
         logger.info(f"因子贡献图已保存: {output_path}")
 
-    return fig
+    # ---- 分析文本 ----
+    max_factor = names[values.index(max(values))] if max(values) > 0 else "N/A"
+    total_contrib = sum(v for v in values if v > 0)
+    esg_contrib = contribs["ESG因子"]
+    lines = [
+        f"综合估值{final_val:.2f}元，主要由{max_factor}驱动。",
+        f"ESG因子贡献{esg_contrib:.2f}元（占比{pcts[2]:.1f}%），"
+        f"{'ESG溢价显著，反映市场对其可持续发展能力的认可' if esg_contrib > total_contrib * 0.25 else 'ESG因子影响适中' if esg_contrib > 0 else 'ESG因子贡献为负，可能制约估值提升'}。",
+    ]
+    analysis_text = "\n\n".join(lines)
+    return fig, analysis_text
 
 
 # ============================================================================
@@ -527,46 +538,32 @@ def plot_anomaly_distribution(
     anomaly_probs: pd.Series,
     risk_levels: Optional[pd.Series] = None,
     output_path: Optional[str] = None,
-) -> plt.Figure:
+) -> Tuple[plt.Figure, str]:
     """
     绘制异常概率分布直方图。
 
-    Parameters
-    ----------
-    anomaly_probs : pd.Series
-        异常概率序列
-    risk_levels : pd.Series, optional
-        风险等级标签
-    output_path : str, optional
-        保存路径
-
     Returns
     -------
-    matplotlib.figure.Figure
+    (matplotlib.figure.Figure, str)
     """
     fig, ax = plt.subplots(figsize=(12, 5))
 
-    # 直方图
     n, bins, patches = ax.hist(
         anomaly_probs, bins=30, alpha=0.7,
-        color=COLOR_PALETTE["secondary"], edgecolor="white",
-    )
+        color=COLOR_PALETTE["secondary"], edgecolor="white")
 
-    # 风险区域着色
     ax.axvspan(0, 0.2, alpha=0.1, color="green", label="低风险 (<0.2)")
     ax.axvspan(0.2, 0.4, alpha=0.1, color="yellow", label="较低风险 (0.2-0.4)")
     ax.axvspan(0.4, 0.6, alpha=0.1, color="orange", label="中等风险 (0.4-0.6)")
     ax.axvspan(0.6, 0.8, alpha=0.1, color="orangered", label="较高风险 (0.6-0.8)")
     ax.axvspan(0.8, 1.0, alpha=0.1, color="red", label="高风险 (>0.8)")
 
-    ax.axvline(
-        x=anomaly_probs.mean(), color="black", linestyle="--", linewidth=2,
-        label=f"均值: {anomaly_probs.mean():.3f}",
-    )
-    ax.axvline(
-        x=anomaly_probs.median(), color="gray", linestyle=":", linewidth=2,
-        label=f"中位数: {anomaly_probs.median():.3f}",
-    )
+    mean_val = anomaly_probs.mean()
+    median_val = anomaly_probs.median()
+    ax.axvline(x=mean_val, color="black", linestyle="--", linewidth=2,
+               label=f"均值: {mean_val:.3f}")
+    ax.axvline(x=median_val, color="gray", linestyle=":", linewidth=2,
+               label=f"中位数: {median_val:.3f}")
 
     ax.set_xlabel("异常概率", fontsize=11)
     ax.set_ylabel("频数", fontsize=11)
@@ -578,7 +575,28 @@ def plot_anomaly_distribution(
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
         logger.info(f"异常分布图已保存: {output_path}")
 
-    return fig
+    # ---- 分析文本 ----
+    total = len(anomaly_probs)
+    high_risk = (anomaly_probs > 0.6).sum()
+    med_risk = ((anomaly_probs > 0.3) & (anomaly_probs <= 0.6)).sum()
+    low_risk = (anomaly_probs <= 0.3).sum()
+    max_prob = anomaly_probs.max()
+
+    lines = [
+        f"共分析{total}个标的，异常概率均值{mean_val:.1%}，中位数{median_val:.1%}。",
+        f"低风险标的{low_risk}个（{low_risk/total:.0%}），"
+        f"中等风险{med_risk}个（{med_risk/total:.0%}），"
+        f"高风险{high_risk}个（{high_risk/total:.0%}）。",
+    ]
+    if high_risk > total * 0.3:
+        lines.append(f"高风险标的占比超过30%，整体财务质量需警惕，建议逐项排查高异常概率标的。")
+    elif max_prob > 0.8:
+        lines.append(f"存在极端异常标的（最高概率{max_prob:.0%}），建议重点核查该标的财务数据真实性。")
+    else:
+        lines.append(f"整体异常风险可控，多数标的处于低风险区间。")
+
+    analysis_text = "\n\n".join(lines)
+    return fig, analysis_text
 
 
 # ============================================================================
@@ -589,86 +607,78 @@ def plot_portfolio_nav(
     nav_data: pd.DataFrame,
     benchmark_nav: Optional[pd.DataFrame] = None,
     output_path: Optional[str] = None,
-) -> plt.Figure:
+) -> Tuple[plt.Figure, str]:
     """
     绘制组合净值曲线与回撤。
 
-    Parameters
-    ----------
-    nav_data : pd.DataFrame
-        组合净值数据（含 day, nav 列）
-    benchmark_nav : pd.DataFrame, optional
-        基准净值数据
-    output_path : str, optional
-        保存路径
-
     Returns
     -------
-    matplotlib.figure.Figure
+    (matplotlib.figure.Figure, str)
     """
     fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True,
                               gridspec_kw={"height_ratios": [2.5, 1]})
 
-    # 上图：净值曲线
-    axes[0].plot(
-        nav_data["day"], nav_data["nav"],
-        color=COLOR_PALETTE["primary"], linewidth=2, label="策略组合",
-    )
+    axes[0].plot(nav_data["day"], nav_data["nav"],
+                 color=COLOR_PALETTE["primary"], linewidth=2, label="策略组合")
     if benchmark_nav is not None:
-        axes[0].plot(
-            benchmark_nav["day"], benchmark_nav["nav"],
-            color=COLOR_PALETTE["gray"], linewidth=1.5, linestyle="--",
-            label="基准指数",
-        )
+        axes[0].plot(benchmark_nav["day"], benchmark_nav["nav"],
+                     color=COLOR_PALETTE["gray"], linewidth=1.5, linestyle="--",
+                     label="基准指数")
 
     axes[0].axhline(y=1.0, color="black", linestyle=":", linewidth=1, alpha=0.5)
-    axes[0].fill_between(
-        nav_data["day"], 1, nav_data["nav"],
-        where=(nav_data["nav"] >= 1),
-        color=COLOR_PALETTE["green"], alpha=0.15,
-    )
-    axes[0].fill_between(
-        nav_data["day"], 1, nav_data["nav"],
-        where=(nav_data["nav"] < 1),
-        color=COLOR_PALETTE["red"], alpha=0.15,
-    )
+    axes[0].fill_between(nav_data["day"], 1, nav_data["nav"],
+                         where=(nav_data["nav"] >= 1),
+                         color=COLOR_PALETTE["green"], alpha=0.15)
+    axes[0].fill_between(nav_data["day"], 1, nav_data["nav"],
+                         where=(nav_data["nav"] < 1),
+                         color=COLOR_PALETTE["red"], alpha=0.15)
     axes[0].set_title("组合净值曲线", fontsize=14, fontweight="bold")
     axes[0].set_ylabel("净值", fontsize=11)
     axes[0].legend(loc="upper left", fontsize=10)
 
-    # 下图：回撤曲线
     nav = nav_data["nav"].values
     peak = np.maximum.accumulate(nav)
     drawdown = (nav - peak) / peak * 100
 
-    axes[1].fill_between(
-        nav_data["day"], 0, drawdown,
-        color=COLOR_PALETTE["red"], alpha=0.4,
-    )
-    axes[1].plot(
-        nav_data["day"], drawdown,
-        color=COLOR_PALETTE["red"], linewidth=1.5,
-    )
+    axes[1].fill_between(nav_data["day"], 0, drawdown,
+                         color=COLOR_PALETTE["red"], alpha=0.4)
+    axes[1].plot(nav_data["day"], drawdown,
+                 color=COLOR_PALETTE["red"], linewidth=1.5)
     axes[1].set_ylabel("回撤 (%)", fontsize=11)
     axes[1].set_xlabel("交易日", fontsize=11)
     axes[1].axhline(y=0, color="black", linestyle=":", linewidth=0.5)
 
-    # 最大回撤标注
     max_dd_idx = np.argmin(drawdown)
     axes[1].annotate(
         f"最大回撤: {drawdown[max_dd_idx]:.1f}%",
         xy=(max_dd_idx, drawdown[max_dd_idx]),
         xytext=(max_dd_idx + 10, drawdown[max_dd_idx] - 5),
         arrowprops={"arrowstyle": "->", "color": "black"},
-        fontsize=10, fontweight="bold",
-    )
+        fontsize=10, fontweight="bold")
 
     plt.tight_layout()
     if output_path:
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
         logger.info(f"净值曲线已保存: {output_path}")
 
-    return fig
+    # ---- 分析文本 ----
+    final_nav = nav[-1] if len(nav) > 0 else 1.0
+    total_return = (final_nav - 1.0) * 100
+    max_dd = abs(drawdown[min(len(drawdown)-1, max_dd_idx)]) if len(drawdown) > 0 else 0
+
+    lines = [
+        f"策略期末净值{final_nav:.3f}，累计收益{total_return:+.1f}%，"
+        f"最大回撤{max_dd:.1f}%。",
+    ]
+    if total_return > 0 and max_dd < 15:
+        lines.append(f"收益表现稳健，回撤控制良好，风险调整后收益较为理想。")
+    elif max_dd > 25:
+        lines.append(f"最大回撤超过25%，策略波动较大，建议优化风控参数以降低尾部风险。")
+    else:
+        lines.append(f"收益与回撤处于合理区间，需关注市场环境变化对策略稳定性的影响。")
+
+    analysis_text = "\n\n".join(lines)
+    return fig, analysis_text
 
 
 # ============================================================================
@@ -682,28 +692,13 @@ def plot_esg_trend_scatter(
     label_col: str = "trend_label",
     stock_col: str = "stock_code",
     output_path: Optional[str] = None,
-) -> plt.Figure:
+) -> Tuple[plt.Figure, str]:
     """
     绘制 ESG 趋势-动量散点图。
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        趋势分析结果
-    x_col : str
-        X轴（动量）
-    y_col : str
-        Y轴（趋势分）
-    label_col : str
-        分类标签列
-    stock_col : str
-        股票代码列
-    output_path : str, optional
-        保存路径
-
     Returns
     -------
-    matplotlib.figure.Figure
+    (matplotlib.figure.Figure, str)
     """
     fig, ax = plt.subplots(figsize=(12, 7))
 
@@ -719,24 +714,18 @@ def plot_esg_trend_scatter(
     for label in df[label_col].unique():
         subset = df[df[label_col] == label]
         color = label_colors.get(label, COLOR_PALETTE["blue"])
-        ax.scatter(
-            subset[x_col], subset[y_col],
-            c=color, label=label, alpha=0.6, s=60, edgecolors="white",
-        )
+        ax.scatter(subset[x_col], subset[y_col],
+                   c=color, label=label, alpha=0.6, s=60, edgecolors="white")
 
-    # 标注极端值
     if len(df) > 0:
         top_n = min(5, len(df))
         top_improvers = df.nlargest(top_n, y_col)
         top_decliners = df.nsmallest(top_n, y_col)
-
         for _, row in pd.concat([top_improvers, top_decliners]).iterrows():
-            ax.annotate(
-                str(row.get(stock_col, "")),
-                (row[x_col], row[y_col]),
-                textcoords="offset points",
-                xytext=(5, 5), fontsize=8, alpha=0.8,
-            )
+            ax.annotate(str(row.get(stock_col, "")),
+                        (row[x_col], row[y_col]),
+                        textcoords="offset points",
+                        xytext=(5, 5), fontsize=8, alpha=0.8)
 
     ax.axhline(y=0, color="black", linestyle=":", linewidth=1, alpha=0.5)
     ax.axvline(x=0, color="black", linestyle=":", linewidth=1, alpha=0.5)
@@ -750,7 +739,24 @@ def plot_esg_trend_scatter(
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
         logger.info(f"趋势散点图已保存: {output_path}")
 
-    return fig
+    # ---- 分析文本 ----
+    trend_counts = df[label_col].value_counts().to_dict() if label_col in df.columns else {}
+    improving = trend_counts.get("显著改善", 0) + trend_counts.get("改善", 0)
+    declining = trend_counts.get("显著恶化", 0) + trend_counts.get("恶化", 0)
+    stable = trend_counts.get("稳定", 0)
+    positive_momentum = (df[x_col] > 0).sum() if x_col in df.columns else 0
+
+    lines = [
+        f"共追踪{len(df)}条ESG记录：趋势改善{improving}条，"
+        f"恶化{declining}条，稳定{stable}条。",
+        f"正向动量标的{positive_momentum}个（{positive_momentum/len(df):.0%}），"
+        f"{'ESG整体向好，多数标的在持续改善' if positive_momentum > len(df)*0.6 else 'ESG趋势分化明显，需区分对待' if positive_momentum > len(df)*0.3 else 'ESG整体承压，多数标的动量偏弱'}。",
+    ]
+    if declining > improving:
+        lines.append(f"恶化标的数超过改善标的数，建议回避趋势持续恶化的标的，关注底部反转信号。")
+
+    analysis_text = "\n\n".join(lines)
+    return fig, analysis_text
 
 
 # ============================================================================
@@ -762,32 +768,22 @@ def plot_dashboard(
     scenario_data: Dict[str, Any],
     anomaly_data: pd.Series,
     output_dir: str = "output/figures",
-) -> Dict[str, str]:
+) -> Tuple[Dict[str, str], Dict[str, str]]:
     """
     生成综合可视化仪表板（所有图表）。
 
-    Parameters
-    ----------
-    esg_radar_data : dict
-        ESG评分数据
-    scenario_data : dict
-        DCF估值结果
-    anomaly_data : pd.Series
-        异常概率序列
-    output_dir : str
-        图表输出目录
-
     Returns
     -------
-    dict
-        图表文件路径映射
+    (dict, dict)
+        (图表文件路径映射, 图表分析文本映射)
     """
     out = _ensure_output_dir(output_dir)
     paths = {}
+    analyses = {}
 
     # 1. ESG雷达图
     paths["radar"] = str(out / "esg_radar.png")
-    plot_esg_radar(
+    _, analyses["radar"] = plot_esg_radar(
         esg_radar_data.get("E_score", 0),
         esg_radar_data.get("S_score", 0),
         esg_radar_data.get("G_score", 0),
@@ -798,16 +794,16 @@ def plot_dashboard(
 
     # 2. DCF情景图
     paths["scenario"] = str(out / "dcf_scenario.png")
-    plot_dcf_scenario_waterfall(scenario_data, output_path=paths["scenario"])
+    _, analyses["scenario"] = plot_dcf_scenario_waterfall(scenario_data, output_path=paths["scenario"])
     plt.close("all")
 
     # 3. 异常分布图
     paths["anomaly"] = str(out / "anomaly_dist.png")
-    plot_anomaly_distribution(anomaly_data, output_path=paths["anomaly"])
+    _, analyses["anomaly"] = plot_anomaly_distribution(anomaly_data, output_path=paths["anomaly"])
     plt.close("all")
 
     logger.info(f"仪表板生成完成: {len(paths)} 个图表 → {output_dir}")
-    return paths
+    return paths, analyses
 
 
 # ============================================================================
@@ -818,22 +814,13 @@ def plot_contagion_network_plotly(
     contagion_matrix: pd.DataFrame,
     threshold: float = 0.1,
     output_path: Optional[str] = None,
-):
+) -> Optional[Tuple[Any, str]]:
     """
     使用 Plotly 绘制行业风险传导网络图（交互式）。
 
-    Parameters
-    ----------
-    contagion_matrix : pd.DataFrame
-        传导矩阵
-    threshold : float
-        显示阈值（仅显示传导系数>threshold的边）
-    output_path : str, optional
-        输出HTML文件路径
-
     Returns
     -------
-    plotly.graph_objects.Figure or None
+    (plotly.graph_objects.Figure, str) or None
     """
     try:
         import plotly.graph_objects as go
@@ -844,12 +831,10 @@ def plot_contagion_network_plotly(
     industries = contagion_matrix.index.tolist()
     n = len(industries)
 
-    # 节点布局（圆形）
     angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
     node_x = np.cos(angles)
     node_y = np.sin(angles)
 
-    # 边
     edge_x, edge_y, edge_weights = [], [], []
     for i in range(n):
         for j in range(n):
@@ -861,39 +846,49 @@ def plot_contagion_network_plotly(
 
     fig = go.Figure()
 
-    # 边迹
     fig.add_trace(go.Scatter(
-        x=edge_x, y=edge_y,
-        mode="lines",
+        x=edge_x, y=edge_y, mode="lines",
         line={"width": 0.5, "color": "#888"},
-        hoverinfo="none",
-        name="传导关系",
-    ))
+        hoverinfo="none", name="传导关系"))
 
-    # 节点迹
     fig.add_trace(go.Scatter(
-        x=node_x, y=node_y,
-        mode="markers+text",
+        x=node_x, y=node_y, mode="markers+text",
         marker={"size": 20, "color": "#2E86AB", "line": {"width": 2, "color": "white"}},
-        text=industries,
-        textposition="top center",
-        textfont={"size": 10},
-        name="行业",
-    ))
+        text=industries, textposition="top center", textfont={"size": 10}, name="行业"))
 
     fig.update_layout(
         title="行业 ESG 风险传导网络",
         showlegend=False,
         xaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
         yaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
-        width=800, height=800,
-    )
+        width=800, height=800)
 
     if output_path:
         fig.write_html(output_path)
         logger.info(f"网络图已保存: {output_path}")
 
-    return fig
+    # ---- 分析文本 ----
+    # 找出传导关系最强的边
+    max_edge = ("", "", 0)
+    for i in range(n):
+        for j in range(n):
+            w = contagion_matrix.iloc[i, j]
+            if w > max_edge[2]:
+                max_edge = (industries[i], industries[j], w)
+
+    high_edges = sum(1 for i in range(n) for j in range(n) if contagion_matrix.iloc[i, j] > threshold)
+    lines = [
+        f"共{len(industries)}个行业节点，发现{high_edges}条显著传导关系（阈值>{threshold:.0%}）。",
+    ]
+    if max_edge[2] > 0:
+        lines.append(
+            f"最强传导路径：{max_edge[0]} → {max_edge[1]}（系数{max_edge[2]:.2f}），"
+            f"表明{max_edge[0]}行业波动对{max_edge[1]}行业具有显著传导效应。"
+        )
+    lines.append("建议关注传导密集的枢纽行业，其波动可能引发多行业连锁反应。")
+
+    analysis_text = "\n\n".join(lines)
+    return fig, analysis_text
 
 
 # ============================================================================

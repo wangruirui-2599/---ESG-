@@ -160,8 +160,8 @@ def get_industry_timeseries(df: pd.DataFrame, stock_code: str) -> pd.DataFrame:
 # 1. 行业ESG总分排名图
 # ============================================================================
 
-def plot_industry_esg_ranking(latest_df: pd.DataFrame, output_path: str) -> str:
-    """行业ESG总分排名横向柱状图。"""
+def plot_industry_esg_ranking(latest_df: pd.DataFrame, output_path: str) -> tuple:
+    """行业ESG总分排名横向柱状图。返回 (path, analysis_text)。"""
     fig, ax = plt.subplots(figsize=(14, 8))
 
     df_sorted = latest_df.sort_values("ESG_total")
@@ -199,7 +199,21 @@ def plot_industry_esg_ranking(latest_df: pd.DataFrame, output_path: str) -> str:
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"行业排名图: {output_path}")
-    return output_path
+    # 分析
+    top3 = latest_df.nlargest(3, 'ESG_total')['industry'].tolist()
+    bot3 = latest_df.nsmallest(3, 'ESG_total')['industry'].tolist()
+    avg_e = latest_df['E_score'].mean()
+    avg_s = latest_df['S_score'].mean()
+    avg_g = latest_df['G_score'].mean()
+    best_dim = "E" if avg_e >= avg_s and avg_e >= avg_g else "S" if avg_s >= avg_g else "G"
+    analysis = (
+        f"ESG总分前三：{'、'.join(top3)}；后三：{'、'.join(bot3)}。"
+        f"全行业平均E={avg_e:.0f}分、S={avg_s:.0f}分、G={avg_g:.0f}分，"
+        f"整体在{best_dim}维度表现相对较好。"
+        f"{top3[0]}以{latest_df['ESG_total'].max():.0f}分领先，"
+        f"建议关注{bot3[0]}的ESG改善进度（{latest_df['ESG_total'].min():.0f}分）。"
+    )
+    return output_path, analysis
 
 
 # ============================================================================
@@ -231,7 +245,7 @@ def plot_esg_timeseries_comparison(df: pd.DataFrame, output_path: str) -> str:
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"时间序列图: {output_path}")
-    return output_path
+    return output_path, ""
 
 
 # ============================================================================
@@ -270,7 +284,7 @@ def plot_contagion_heatmap(latest_df: pd.DataFrame, output_path: str) -> str:
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"风险传导图: {output_path}")
-    return output_path
+    return output_path, ""
 
 
 # ============================================================================
@@ -312,7 +326,7 @@ def plot_multi_industry_radar(latest_df: pd.DataFrame, output_path: str) -> str:
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"多行业雷达图: {output_path}")
-    return output_path
+    return output_path, ""
 
 
 # ============================================================================
@@ -374,7 +388,7 @@ def plot_industry_attractiveness(latest_df: pd.DataFrame, output_path: str) -> s
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"吸引力矩阵: {output_path}")
-    return output_path
+    return output_path, ""
 
 
 # ============================================================================
@@ -416,7 +430,7 @@ def plot_esg_momentum_bubble(latest_df: pd.DataFrame, output_path: str) -> str:
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"动量气泡图: {output_path}")
-    return output_path
+    return output_path, ""
 
 
 # ============================================================================
@@ -786,11 +800,11 @@ def generate_single_industry_deep_report(
     """为单个行业/股票生成深度分析报告。"""
     profile = INDUSTRY_PROFILES.get(industry, {})
 
-    # ESG雷达图 - 保存到 output/figures 目录
+    # ESG雷达图 - 提取分析文本
     radar_fig_dir = Path("output/figures")
     radar_fig_dir.mkdir(parents=True, exist_ok=True)
     radar_path = str(radar_fig_dir / f"esg_radar_{stock_code}.png")
-    plot_esg_radar(
+    _, esg_analysis = plot_esg_radar(
         e_score=latest_row.get("E_score", 0),
         s_score=latest_row.get("S_score", 0),
         g_score=latest_row.get("G_score", 0),
@@ -801,7 +815,51 @@ def generate_single_industry_deep_report(
     )
     plt.close("all")
 
-    # 构建报告上下文
+    # 生成估值分析
+    current_price = latest_row.get("current_price", latest_row.get("close_price", 1))
+    expected_value = latest_row.get("expected_value", 0)
+    upside = latest_row.get("expected_upside_pct", 0)
+    opt_val = expected_value * 1.2
+    pes_val = expected_value * 0.75
+    val_gap = (opt_val - pes_val) / expected_value * 100 if expected_value > 0 else 0
+
+    val_lines = [
+        f"当前股价{current_price:.2f}元，概率加权期望估值{expected_value:.2f}元，"
+        f"{'上行空间' if upside >= 0 else '下行风险'}{abs(upside):.1f}%。",
+        f"乐观情景估值{opt_val:.2f}元，悲观情景估值{pes_val:.2f}元，"
+        f"情景间估值跨度{val_gap:.0f}%，{'不确定性较高，需关注基本面变化' if val_gap > 50 else '估值区间合理'}。",
+    ]
+    if upside > 15:
+        val_lines.append("当前价格显著低于期望估值，安全边际充足。")
+    elif upside > 0:
+        val_lines.append("当前价格略低于期望估值，存在一定上行空间。")
+    elif upside > -10:
+        val_lines.append("当前价格接近合理估值，建议持有观望。")
+    else:
+        val_lines.append("当前价格高于期望估值，建议谨慎评估风险。")
+    val_analysis = "\n\n".join(val_lines)
+
+    # 生成异常分析
+    anomaly_prob = latest_row.get("anomaly_probability", 0)
+    risk_level = str(latest_row.get("risk_level", "低风险"))
+    anom_lines = [
+        f"异常概率{anomaly_prob:.1%}，风险等级：{risk_level}。",
+    ]
+    if anomaly_prob > 0.5:
+        anom_lines.append("异常概率较高，建议深入排查财务数据质量、关联交易和盈利可持续性。")
+    elif anomaly_prob > 0.3:
+        anom_lines.append("存在中等异常风险，建议关注净利润波动和资产负债率变化趋势。")
+    else:
+        anom_lines.append("财务异常概率较低，基本面数据质量良好。")
+    anom_analysis = "\n\n".join(anom_lines)
+
+    # 构建报告上下文（含图表分析）
+    chart_analyses = {
+        "esg": esg_analysis,
+        "valuation": val_analysis,
+        "anomaly": anom_analysis,
+    }
+
     context = generator.build_context(
         stock_code=str(stock_code),
         industry=industry,
@@ -814,26 +872,24 @@ def generate_single_industry_deep_report(
             "ESG_total_momentum": latest_row.get("ESG_total_momentum", 0),
         },
         valuation_data={
-            "expected_value": latest_row.get("expected_value", 0),
-            "current_price": latest_row.get("current_price", latest_row.get("close_price", 1)),
-            "expected_upside_pct": latest_row.get("expected_upside_pct", 0),
+            "expected_value": expected_value,
+            "current_price": current_price,
+            "expected_upside_pct": upside,
             "scenarios": [
                 {"name": "乐观", "probability": 0.25,
-                 "intrinsic_value": latest_row.get("expected_value", 0) * 1.2,
-                 "upside_pct": (latest_row.get("expected_value", 0) * 1.2 - latest_row.get("close_price", 1))
-                               / max(latest_row.get("close_price", 1), 0.01) * 100},
+                 "intrinsic_value": opt_val,
+                 "upside_pct": (opt_val - current_price) / max(current_price, 0.01) * 100},
                 {"name": "中性", "probability": 0.50,
-                 "intrinsic_value": latest_row.get("expected_value", 0),
-                 "upside_pct": latest_row.get("expected_upside_pct", 0)},
+                 "intrinsic_value": expected_value,
+                 "upside_pct": upside},
                 {"name": "悲观", "probability": 0.25,
-                 "intrinsic_value": latest_row.get("expected_value", 0) * 0.75,
-                 "upside_pct": (latest_row.get("expected_value", 0) * 0.75 - latest_row.get("close_price", 1))
-                               / max(latest_row.get("close_price", 1), 0.01) * 100},
+                 "intrinsic_value": pes_val,
+                 "upside_pct": (pes_val - current_price) / max(current_price, 0.01) * 100},
             ],
         },
         anomaly_data={
-            "anomaly_probability": latest_row.get("anomaly_probability", 0),
-            "risk_level": str(latest_row.get("risk_level", "低风险")),
+            "anomaly_probability": anomaly_prob,
+            "risk_level": risk_level,
         },
         advice_data={
             "advice": str(latest_row.get("advice", "持有")),
@@ -844,12 +900,13 @@ def generate_single_industry_deep_report(
                 f"⚠ ESG焦点: {profile.get('esg_focus', '需关注')}",
             ],
             "key_metrics": {
-                "expected_upside_pct": latest_row.get("expected_upside_pct", 0),
+                "expected_upside_pct": upside,
                 "asymmetry_ratio": latest_row.get("asymmetry_ratio", 1.0),
                 "sharpe_approx": latest_row.get("sharpe_approx", 0.0),
                 "esg_trend": str(latest_row.get("trend_label", "")),
             },
         },
+        chart_analyses=chart_analyses,
     )
 
     return generator.generate_full_report(context, stock_code=str(stock_code)[:8])
@@ -886,36 +943,24 @@ def main() -> None:
     # 3. 生成可视化图表
     logger.info("生成综合图表...")
     figures = {}
+    figure_analyses = {}
 
-    try:
-        figures["ranking"] = plot_industry_esg_ranking(latest_df, str(out_fig / "industry_esg_ranking.png"))
-    except Exception as e:
-        logger.error(f"排名图失败: {e}")
+    def _safe_plot(key, fn, *args):
+        try:
+            result = fn(*args)
+            if isinstance(result, tuple) and len(result) == 2:
+                figures[key], figure_analyses[key] = result
+            else:
+                figures[key] = result
+        except Exception as e:
+            logger.error(f"{key}图表失败: {e}")
 
-    try:
-        figures["timeseries"] = plot_esg_timeseries_comparison(df, str(out_fig / "industry_esg_timeseries.png"))
-    except Exception as e:
-        logger.error(f"时间序列图失败: {e}")
-
-    try:
-        figures["contagion"] = plot_contagion_heatmap(latest_df, str(out_fig / "industry_contagion.png"))
-    except Exception as e:
-        logger.error(f"传导热力图失败: {e}")
-
-    try:
-        figures["radar"] = plot_multi_industry_radar(latest_df, str(out_fig / "industry_multi_radar.png"))
-    except Exception as e:
-        logger.error(f"雷达图失败: {e}")
-
-    try:
-        figures["attractiveness"] = plot_industry_attractiveness(latest_df, str(out_fig / "industry_attractiveness.png"))
-    except Exception as e:
-        logger.error(f"吸引力矩阵失败: {e}")
-
-    try:
-        figures["momentum"] = plot_esg_momentum_bubble(latest_df, str(out_fig / "industry_momentum_bubble.png"))
-    except Exception as e:
-        logger.error(f"动量气泡图失败: {e}")
+    _safe_plot("ranking", plot_industry_esg_ranking, latest_df, str(out_fig / "industry_esg_ranking.png"))
+    _safe_plot("timeseries", plot_esg_timeseries_comparison, df, str(out_fig / "industry_esg_timeseries.png"))
+    _safe_plot("contagion", plot_contagion_heatmap, latest_df, str(out_fig / "industry_contagion.png"))
+    _safe_plot("radar", plot_multi_industry_radar, latest_df, str(out_fig / "industry_multi_radar.png"))
+    _safe_plot("attractiveness", plot_industry_attractiveness, latest_df, str(out_fig / "industry_attractiveness.png"))
+    _safe_plot("momentum", plot_esg_momentum_bubble, latest_df, str(out_fig / "industry_momentum_bubble.png"))
 
     save_all_figures_close()
     logger.info(f"图表生成完成: {len(figures)} 张")

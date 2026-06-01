@@ -65,6 +65,14 @@
         .advice-box .advice-text { font-size: 2em; font-weight: bold; }
         .warnings { margin-top: 12px; padding: 12px; background: #fff3cd; border-radius: 6px; }
         .warnings li { margin: 4px 0; font-size: 0.9em; }
+        .analysis-box {
+            margin-top: 16px; padding: 16px;
+            background: linear-gradient(135deg, #e8f4f8, #f0f7fa);
+            border-radius: 6px; border-left: 4px solid var(--primary);
+            font-size: 0.92em; line-height: 1.8;
+        }
+        .analysis-box strong { color: var(--primary); display: block; margin-bottom: 8px; }
+        .analysis-box p { margin: 8px 0; }
         .footer { text-align: center; padding: 20px; color: var(--gray); font-size: 0.85em; }
         .progress-bar {
             height: 8px; border-radius: 4px; background: #e9ecef; overflow: hidden; margin: 8px 0;
@@ -78,7 +86,7 @@
         <!-- 头部 -->
         <div class="header">
             <h1>📊 ESG Insight Valuator</h1>
-            <p>ESG智能估值分析报告 | 2026-06-01 13:34</p>
+            <p>ESG智能估值分析报告 | 2026-06-01 13:56</p>
             <p style="font-size:0.85em;">标的: 600002 | 行业: 化工</p>
         </div>
 
@@ -108,6 +116,12 @@
                 📈 ESG趋势: <strong>改善</strong>
                 (动量: 0.0255)
             </p>
+            
+            
+            <div class="analysis-box">
+                <strong>📋 ESG深度分析</strong>
+                <p>ESG综合得分60分，处于中等水平。</p><p>环境(E)维度47分（较弱），社会(S)维度65分（中等），治理(G)维度69分（中等）。</p><p>三维度分化明显，治理(G)得分最高（69分），环境(E)得分最低（47分），差距达23分，建议重点关注环境(E)的改善。</p><p>环境得分偏低（47分），建议加强碳排放管理和清洁能源使用比例。</p>
+            </div>
             
         </div>
 
@@ -162,6 +176,12 @@
                 </tr>
                 
             </table>
+            
+            <div class="analysis-box">
+                <strong>📋 估值深度分析</strong>
+                <p>当前股价33.72元，概率加权期望估值2.74元，下行风险86.8%。</p><p>乐观情景估值3.29元，悲观情景估值2.06元，情景间估值跨度45%，估值区间合理。</p><p>当前价格高于期望估值，建议谨慎评估风险。</p>
+            </div>
+            
         </div>
 
         <!-- 3. 异常检测 -->
@@ -182,6 +202,12 @@
                     background:#2ECC71;">
                 </div>
             </div>
+            
+            <div class="analysis-box">
+                <strong>📋 异常检测深度分析</strong>
+                <p>异常概率15.0%，风险等级：低风险。</p><p>财务异常概率较低，基本面数据质量良好。</p>
+            </div>
+            
         </div>
 
         <!-- 4. 投资建议 -->
@@ -232,7 +258,7 @@
 
         <!-- 尾部 -->
         <div class="footer">
-            <p>ESG Insight Valuator v1.0.0 | 报告生成时间: 2026-06-01 13:34</p>
+            <p>ESG Insight Valuator v1.0.0 | 报告生成时间: 2026-06-01 13:56</p>
             <p>本报告仅供参考，不构成投资建议。投资有风险，入市需谨慎。</p>
         </div>
 
