@@ -22,17 +22,184 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+# ---- 在导入 matplotlib 之前先清理字体缓存 ----
+# 这是解决中文方框问题的关键：matplotlib 可能在之前的运行中缓存了错误的字体映射
+import glob as _glob
+import matplotlib as _mpl_pre
+_cache_dir = _mpl_pre.get_cachedir()
+for _f in _glob.glob(os.path.join(_cache_dir, "fontlist-v*.json")):
+    try:
+        os.remove(_f)
+    except Exception:
+        pass
+
 import matplotlib
 matplotlib.use("Agg")  # 非交互式后端
 
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 import matplotlib.ticker as mticker
 import seaborn as sns
+import platform
 
-# 中文字体配置
-plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "DejaVu Sans"]
-plt.rcParams["axes.unicode_minus"] = False
+
+# ============================================================================
+# 中文字体配置（跨平台）
+# ============================================================================
+
+# 模块级缓存：setup_chinese_font() 找到的字体文件路径
+_CHINESE_FONT_FILE: Optional[str] = None
+_CHINESE_FONT_NAME: Optional[str] = None
+
+
+def setup_chinese_font() -> bool:
+    """
+    配置 matplotlib 中文字体，解决图表中文显示为方框的问题。
+
+    采用多层策略确保中文正常渲染：
+      1. 删除 matplotlib 字体缓存 → 强制重建字体列表
+      2. 按操作系统查找中文字体文件
+      3. 将字体文件路径保存到模块变量，供各绘图函数使用
+      4. 同时设置 rcParams 作为默认回退
+
+    支持的操作系统：
+      - Windows: Microsoft YaHei → SimHei → KaiTi
+      - macOS:   PingFang SC → Heiti SC → STHeiti
+      - Linux:   WenQuanYi Zen Hei → Noto Sans CJK SC
+
+    Returns
+    -------
+    bool
+        True 如果找到并加载了中文字体，False 否则
+    """
+    global _CHINESE_FONT_FILE, _CHINESE_FONT_NAME
+
+    # ---- 1. 删除旧字体缓存，强制重建 ----
+    try:
+        cache_dir = matplotlib.get_cachedir()
+        for cache_file in Path(cache_dir).glob("fontlist-v*.json"):
+            cache_file.unlink(missing_ok=True)
+            logger.debug(f"已删除字体缓存: {cache_file}")
+    except Exception:
+        pass
+
+    # ---- 2. 按操作系统确定候选字体（先于重建，因为需要文件路径） ----
+    system = platform.system()
+    if system == "Windows":
+        font_names = ["Microsoft YaHei", "SimHei", "KaiTi", "FangSong"]
+        font_dirs = [Path("C:/Windows/Fonts")]
+    elif system == "Darwin":  # macOS
+        font_names = ["PingFang SC", "Heiti SC", "STHeiti", "Apple LiSung"]
+        font_dirs = [Path("/System/Library/Fonts"),
+                      Path("/Library/Fonts")]
+    else:  # Linux / other
+        font_names = ["WenQuanYi Zen Hei", "WenQuanYi Micro Hei",
+                       "Noto Sans CJK SC", "Noto Sans SC", "SimHei"]
+        font_dirs = [Path("/usr/share/fonts"),
+                      Path("/usr/local/share/fonts"),
+                      Path.home() / ".fonts"]
+
+    # ---- 3. 查找中文字体文件 ----
+    # 先通过 matplotlib 已有列表查找
+    available_fonts = {f.name: f.fname for f in fm.fontManager.ttflist}
+    found_font = None
+    found_file = None
+
+    for font_name in font_names:
+        if font_name in available_fonts:
+            found_font = font_name
+            found_file = available_fonts[font_name]
+            break
+
+    # 如果按名字找不到，扫描系统字体目录
+    if not found_file:
+        name_to_file = {
+            "Microsoft YaHei": ["msyh.ttc", "msyh.ttf"],
+            "SimHei": ["simhei.ttf"],
+            "KaiTi": ["simkai.ttf"],
+            "FangSong": ["simfang.ttf"],
+        }
+        for font_name in font_names:
+            candidates = name_to_file.get(font_name, [font_name.replace(" ", "") + ".ttf"])
+            for font_dir in font_dirs:
+                if not font_dir.exists():
+                    continue
+                for candidate in candidates:
+                    for ext in ["", ".ttf", ".ttc", ".otf"]:
+                        p = font_dir / (candidate + ext)
+                        if p.exists():
+                            found_font = font_name
+                            found_file = str(p)
+                            break
+                    if found_file:
+                        break
+                if found_file:
+                    break
+            if found_file:
+                break
+
+    # ---- 4. 注册字体文件（必须在 _load_fontmanager 之前） ----
+    # 注意：只注册 Regular 和 Bold 变体，避免 Light 等细体覆盖 Regular。
+    # _load_fontmanager 会以最后注册的同名字体为准。
+    if found_file:
+        font_dir = Path(found_file).parent
+        font_stem = Path(found_file).stem.lower()
+        # 去除变体后缀 (Bold/Light/Italic) 获取基础文件名
+        for suffix in ["bd", "l", "i", "bi", "z", "lt"]:
+            if font_stem.endswith(suffix):
+                font_stem = font_stem[:-len(suffix)]
+                break
+        # 只注册 Regular 和 Bold（跳过 Light 等细体，防止覆盖标准字重）
+        skip_suffixes = ("l.ttc", "l.ttf", "lt.ttf", "lt.ttc", "light", "Light")
+        for sibling in sorted(font_dir.glob(f"{font_stem}*.*")):
+            if sibling.suffix.lower() not in (".ttf", ".ttc", ".otf"):
+                continue
+            name_lower = sibling.name.lower()
+            if any(s in name_lower for s in skip_suffixes):
+                logger.debug(f"跳过细体字体: {sibling.name}")
+                continue
+            try:
+                fm.fontManager.addfont(str(sibling))
+                logger.debug(f"已注册字体文件: {sibling.name}")
+            except Exception:
+                pass
+
+    # ---- 5. 重建字体管理器（包含新注册的字体） ----
+    # 必须在 addfont 之后调用，让新注册的字体被正确索引
+    try:
+        fm._load_fontmanager(try_read_cache=False)
+    except Exception:
+        pass
+
+    # ---- 6. 保存到模块变量 ----
+    _CHINESE_FONT_FILE = found_file
+    _CHINESE_FONT_NAME = found_font
+
+    # ---- 7. 设置 rcParams ----
+    # 关键：font.family 直接设为找到的字体名，避免经 sans-serif 解析链回退到 Arial
+    if found_font:
+        plt.rcParams["font.family"] = found_font  # 直接指定，绕过 sans-serif 链
+        plt.rcParams["font.sans-serif"] = [found_font] + font_names + ["DejaVu Sans"]
+        plt.rcParams["axes.unicode_minus"] = False
+        logger.info(f"中文字体已加载: {found_font} ({found_file})")
+        return True
+    else:
+        plt.rcParams["font.family"] = "sans-serif"
+        plt.rcParams["font.sans-serif"] = font_names + ["DejaVu Sans"]
+        plt.rcParams["axes.unicode_minus"] = False
+        logger.warning(
+            f"未找到中文字体 (系统: {system})，"
+            f"候选: {font_names[:3]}... "
+            f"请安装中文字体后删除 {matplotlib.get_cachedir()} 下的缓存文件。"
+        )
+        return False
+
+
+# 模块加载时自动配置
+# 注意：必须先设 seaborn 样式，再配中文字体！
+# 因为 sns.set_style() 会重置 font.family 为 'sans-serif'，覆盖中文字体设置。
 sns.set_style("whitegrid")
+_font_configured = setup_chinese_font()
 
 
 # ============================================================================
@@ -740,15 +907,27 @@ def save_all_figures_close() -> None:
 
 def set_chinese_font(font_path: Optional[str] = None) -> None:
     """
-    设置中文字体。
+    设置中文字体（兼容旧接口）。
+
+    优先使用模块加载时自动配置的字体。
+    如需使用自定义字体文件，传入 font_path 参数。
 
     Parameters
     ----------
     font_path : str, optional
-        字体文件路径
+        自定义字体文件路径。如不传则使用 setup_chinese_font() 的自动检测结果。
     """
     if font_path and os.path.exists(font_path):
-        from matplotlib.font_manager import FontProperties
-        font = FontProperties(fname=font_path)
-        plt.rcParams["font.sans-serif"] = [font.get_name()] + plt.rcParams["font.sans-serif"]
-    logger.info(f"中文字体配置: {plt.rcParams['font.sans-serif'][:3]}")
+        # 使用指定的字体文件
+        fm.fontManager.addfont(font_path)
+        font_prop = fm.FontProperties(fname=font_path)
+        font_name = font_prop.get_name()
+        plt.rcParams["font.sans-serif"] = [font_name] + plt.rcParams["font.sans-serif"]
+        # 重建字体缓存
+        fm._load_fontmanager(try_read_cache=False)
+        logger.info(f"自定义字体已加载: {font_name} ({font_path})")
+    else:
+        # 回退到自动检测
+        if not _font_configured:
+            setup_chinese_font()
+    logger.info(f"当前字体配置: {plt.rcParams['font.sans-serif'][:4]}")
