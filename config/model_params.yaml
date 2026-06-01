@@ -1,0 +1,51 @@
+# ============================================================================
+# ESG Insight Valuator (EIV) - 模型超参数配置
+# ============================================================================
+# 包含各核心模型的训练/推理参数，由 Pydantic ModelParamsConfig 验证。
+
+# ========================= LightGBM 异常预警模型 =========================
+# 用于财务异常检测（src/anomaly/predictor.py）
+model_params:
+  learning_rate: 0.05         # 学习率 - 较小值防止过拟合
+  n_estimators: 200           # 提升迭代次数
+  max_depth: 7                # 树的最大深度
+  num_leaves: 31              # 叶子节点数量（<= 2^max_depth）
+  min_child_samples: 20       # 叶子节点最小样本数（防止过拟合）
+  subsample: 0.8              # 每次迭代的样本采样比例
+  colsample_bytree: 0.8       # 每棵树的特征采样比例
+  reg_alpha: 0.1              # L1 正则化系数
+  reg_lambda: 0.1             # L2 正则化系数
+  objective: "binary"         # 目标函数：二分类（异常/正常）
+  metric: "auc"               # 评估指标：AUC
+  random_state: 42            # 随机种子（保证可复现）
+  early_stopping_rounds: 50   # 早停轮数
+  verbose: -1                 # 静默训练
+
+# ========================= 四因子融合权重 =========================
+# 用于四因子融合模型（src/fusion/four_factor.py）
+# 此为默认权重，各行业权重可在运行时动态调整
+fusion_weights:
+  dcf_weight: 0.35            # DCF绝对估值权重
+  relative_weight: 0.25       # 相对估值（PE/PB/PS等）权重
+  esg_weight: 0.20            # ESG因子评分权重
+  sentiment_weight: 0.20      # 市场情绪因子权重
+
+# ========================= 市场情绪校准因子权重 =========================
+# 用于情绪校准模型（src/valuation/sentiment_calibration.py）
+sentiment_weights:
+  northbound: 0.30            # 北向资金流向权重
+  margin: 0.25                # 融资融券余额权重
+  turnover: 0.20              # 换手率权重
+  sentiment_text: 0.25        # 舆情文本情感权重
+
+# ========================= 特征工程参数 =========================
+feature_engineering:
+  # 滞后特征
+  lag_periods: [1, 2, 3, 4]   # 滞后季度数（1Q/2Q/3Q/4Q前）
+
+  # 滚动统计窗口
+  rolling_windows: [4, 8, 12] # 滚动窗口大小（季度）
+
+  # 行业标准化
+  industry_standardize: true   # 是否进行行业内Z-score标准化
+  min_industry_size: 5         # 行业内最少公司数（不足则用全市场均值）
