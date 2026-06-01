@@ -8,8 +8,8 @@
   2. 行业权重热力图
   3. DCF情景估值瀑布图
   4. 四因子贡献饼图/柱状图
-  5. 异常概率分布直方图
-  6. 组合净值曲线
+  5. Anomaly Probability分布直方图
+  6. Portfolio NAV Curve
   7. 风险传导网络图（Plotly）
   8. ESG趋势动量散点图
 """
@@ -102,7 +102,7 @@ def plot_esg_radar(
     -------
     matplotlib.figure.Figure
     """
-    categories = ["环境 (E)", "社会 (S)", "治理 (G)"]
+    categories = ["Environment (E)", "Social (S)", "Governance (G)"]
     values = [e_score, s_score, g_score]
     values += values[:1]  # 闭合
 
@@ -136,7 +136,7 @@ def plot_esg_radar(
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(categories, fontsize=12)
 
-    title = f"ESG 评分雷达图"
+    title = f"ESG Score Radar Chart"
     if stock_code:
         title += f" - {stock_code}"
     if industry:
@@ -186,13 +186,13 @@ def plot_industry_weight_heatmap(
         vmin=0,
         vmax=0.6,
         linewidths=0.5,
-        cbar_kws={"label": "权重"},
+        cbar_kws={"label": "Weight"},
         ax=ax,
     )
 
-    ax.set_title("行业 ESG 维度权重分布", fontsize=14, fontweight="bold")
-    ax.set_xlabel("ESG 维度", fontsize=11)
-    ax.set_ylabel("行业", fontsize=11)
+    ax.set_title("Industry ESG Dimension Weight Distribution", fontsize=14, fontweight="bold")
+    ax.set_xlabel("ESG Dimension", fontsize=11)
+    ax.set_ylabel("Industry", fontsize=11)
 
     if output_path:
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
@@ -238,14 +238,14 @@ def plot_dcf_scenario_waterfall(
         color="black",
         linestyle="--",
         linewidth=2,
-        label=f"当前价格 {scenario_results.get('current_price', 0):.2f}",
+        label=f"Current Price {scenario_results.get('current_price', 0):.2f}",
     )
     axes[0].axhline(
         y=scenario_results.get("expected_value", 0),
         color=COLOR_PALETTE["primary"],
         linestyle="-",
         linewidth=2,
-        label=f"期望估值 {scenario_results.get('expected_value', 0):.2f}",
+        label=f"Expected Value {scenario_results.get('expected_value', 0):.2f}",
     )
 
     # 标注概率
@@ -255,8 +255,8 @@ def plot_dcf_scenario_waterfall(
             xytext=(0, 10), ha="center", fontsize=10,
         )
 
-    axes[0].set_title("DCF 多情景估值对比", fontsize=13, fontweight="bold")
-    axes[0].set_ylabel("每股内在价值（元）", fontsize=11)
+    axes[0].set_title("DCF Multi-Scenario Valuation Comparison", fontsize=13, fontweight="bold")
+    axes[0].set_ylabel("Intrinsic Value Per Share (CNY)", fontsize=11)
     axes[0].legend(loc="upper left", fontsize=9)
 
     # 右图：概率饼图
@@ -267,7 +267,7 @@ def plot_dcf_scenario_waterfall(
     )
     for at in autotexts:
         at.set_fontweight("bold")
-    axes[1].set_title("情景概率分布", fontsize=13, fontweight="bold")
+    axes[1].set_title("Scenario Probability Distribution", fontsize=13, fontweight="bold")
 
     plt.tight_layout()
     if output_path:
@@ -303,10 +303,10 @@ def plot_factor_contribution(
 
     # 左图：贡献柱状图
     contribs = {
-        "DCF估值": fusion_result.get("dcf_contrib", 0),
-        "相对估值": fusion_result.get("relative_contrib", 0),
-        "ESG因子": fusion_result.get("esg_contrib", 0),
-        "市场情绪": fusion_result.get("sentiment_contrib", 0),
+        "DCF Valuation": fusion_result.get("dcf_contrib", 0),
+        "Relative Valuation": fusion_result.get("relative_contrib", 0),
+        "ESG Factor": fusion_result.get("esg_contrib", 0),
+        "Market Sentiment": fusion_result.get("sentiment_contrib", 0),
     }
     names = list(contribs.keys())
     values = list(contribs.values())
@@ -317,7 +317,7 @@ def plot_factor_contribution(
     axes[0].axhline(
         y=fusion_result.get("final_value", 0),
         color="black", linestyle="--", linewidth=2,
-        label=f"综合估值: {fusion_result.get('final_value', 0):.2f}",
+        label=f"Composite Valuation:{fusion_result.get('final_value', 0):.2f}",
     )
 
     # 标注数值
@@ -327,8 +327,8 @@ def plot_factor_contribution(
             f"{val:.2f}", ha="center", fontsize=10,
         )
 
-    axes[0].set_title("四因子贡献分解", fontsize=13, fontweight="bold")
-    axes[0].set_ylabel("估值贡献（元）", fontsize=11)
+    axes[0].set_title("Four-Factor Contribution Breakdown", fontsize=13, fontweight="bold")
+    axes[0].set_ylabel("Valuation Contribution (CNY)", fontsize=11)
     axes[0].legend(fontsize=9)
 
     # 右图：占比饼图
@@ -342,7 +342,7 @@ def plot_factor_contribution(
         pcts, labels=names, autopct="%1.1f%%",
         colors=colors, startangle=90,
     )
-    axes[1].set_title("因子贡献占比", fontsize=13, fontweight="bold")
+    axes[1].set_title("Factor Contribution Proportion", fontsize=13, fontweight="bold")
 
     plt.tight_layout()
     if output_path:
@@ -353,7 +353,7 @@ def plot_factor_contribution(
 
 
 # ============================================================================
-# 5. 异常概率分布直方图
+# 5. Anomaly Probability分布直方图
 # ============================================================================
 
 def plot_anomaly_distribution(
@@ -362,12 +362,12 @@ def plot_anomaly_distribution(
     output_path: Optional[str] = None,
 ) -> plt.Figure:
     """
-    绘制异常概率分布直方图。
+    绘制Anomaly Probability分布直方图。
 
     Parameters
     ----------
     anomaly_probs : pd.Series
-        异常概率序列
+        Anomaly Probability序列
     risk_levels : pd.Series, optional
         风险等级标签
     output_path : str, optional
@@ -386,24 +386,24 @@ def plot_anomaly_distribution(
     )
 
     # 风险区域着色
-    ax.axvspan(0, 0.2, alpha=0.1, color="green", label="低风险 (<0.2)")
-    ax.axvspan(0.2, 0.4, alpha=0.1, color="yellow", label="较低风险 (0.2-0.4)")
-    ax.axvspan(0.4, 0.6, alpha=0.1, color="orange", label="中等风险 (0.4-0.6)")
-    ax.axvspan(0.6, 0.8, alpha=0.1, color="orangered", label="较高风险 (0.6-0.8)")
-    ax.axvspan(0.8, 1.0, alpha=0.1, color="red", label="高风险 (>0.8)")
+    ax.axvspan(0, 0.2, alpha=0.1, color="green", label="Low Risk (<0.2)")
+    ax.axvspan(0.2, 0.4, alpha=0.1, color="yellow", label="Moderate Risk (0.2-0.4)")
+    ax.axvspan(0.4, 0.6, alpha=0.1, color="orange", label="Medium Risk (0.4-0.6)")
+    ax.axvspan(0.6, 0.8, alpha=0.1, color="orangered", label="High Risk (0.6-0.8)")
+    ax.axvspan(0.8, 1.0, alpha=0.1, color="red", label="Critical Risk (>0.8)")
 
     ax.axvline(
         x=anomaly_probs.mean(), color="black", linestyle="--", linewidth=2,
-        label=f"均值: {anomaly_probs.mean():.3f}",
+        label=f"Mean: {anomaly_probs.mean():.3f}",
     )
     ax.axvline(
         x=anomaly_probs.median(), color="gray", linestyle=":", linewidth=2,
-        label=f"中位数: {anomaly_probs.median():.3f}",
+        label=f"Median: {anomaly_probs.median():.3f}",
     )
 
-    ax.set_xlabel("异常概率", fontsize=11)
-    ax.set_ylabel("频数", fontsize=11)
-    ax.set_title("财务异常概率分布", fontsize=14, fontweight="bold")
+    ax.set_xlabel("Anomaly Probability", fontsize=11)
+    ax.set_ylabel("Frequency", fontsize=11)
+    ax.set_title("Financial Anomaly Probability Distribution", fontsize=14, fontweight="bold")
     ax.legend(loc="upper right", fontsize=8)
 
     plt.tight_layout()
@@ -415,7 +415,7 @@ def plot_anomaly_distribution(
 
 
 # ============================================================================
-# 6. 组合净值曲线
+# 6. Portfolio NAV Curve
 # ============================================================================
 
 def plot_portfolio_nav(
@@ -424,14 +424,14 @@ def plot_portfolio_nav(
     output_path: Optional[str] = None,
 ) -> plt.Figure:
     """
-    绘制组合净值曲线与回撤。
+    绘制Portfolio NAV Curve与回撤。
 
     Parameters
     ----------
     nav_data : pd.DataFrame
-        组合净值数据（含 day, nav 列）
+        组合NAV数据（含 day, nav 列）
     benchmark_nav : pd.DataFrame, optional
-        基准净值数据
+        基准NAV数据
     output_path : str, optional
         保存路径
 
@@ -442,16 +442,16 @@ def plot_portfolio_nav(
     fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True,
                               gridspec_kw={"height_ratios": [2.5, 1]})
 
-    # 上图：净值曲线
+    # 上图：NAV曲线
     axes[0].plot(
         nav_data["day"], nav_data["nav"],
-        color=COLOR_PALETTE["primary"], linewidth=2, label="策略组合",
+        color=COLOR_PALETTE["primary"], linewidth=2, label="Strategy Portfolio",
     )
     if benchmark_nav is not None:
         axes[0].plot(
             benchmark_nav["day"], benchmark_nav["nav"],
             color=COLOR_PALETTE["gray"], linewidth=1.5, linestyle="--",
-            label="基准指数",
+            label="Benchmark Index",
         )
 
     axes[0].axhline(y=1.0, color="black", linestyle=":", linewidth=1, alpha=0.5)
@@ -465,8 +465,8 @@ def plot_portfolio_nav(
         where=(nav_data["nav"] < 1),
         color=COLOR_PALETTE["red"], alpha=0.15,
     )
-    axes[0].set_title("组合净值曲线", fontsize=14, fontweight="bold")
-    axes[0].set_ylabel("净值", fontsize=11)
+    axes[0].set_title("Portfolio NAV Curve", fontsize=14, fontweight="bold")
+    axes[0].set_ylabel("NAV", fontsize=11)
     axes[0].legend(loc="upper left", fontsize=10)
 
     # 下图：回撤曲线
@@ -482,14 +482,14 @@ def plot_portfolio_nav(
         nav_data["day"], drawdown,
         color=COLOR_PALETTE["red"], linewidth=1.5,
     )
-    axes[1].set_ylabel("回撤 (%)", fontsize=11)
-    axes[1].set_xlabel("交易日", fontsize=11)
+    axes[1].set_ylabel("Drawdown (%)", fontsize=11)
+    axes[1].set_xlabel("Trading Days", fontsize=11)
     axes[1].axhline(y=0, color="black", linestyle=":", linewidth=0.5)
 
     # 最大回撤标注
     max_dd_idx = np.argmin(drawdown)
     axes[1].annotate(
-        f"最大回撤: {drawdown[max_dd_idx]:.1f}%",
+        f"Max Drawdown:{drawdown[max_dd_idx]:.1f}%",
         xy=(max_dd_idx, drawdown[max_dd_idx]),
         xytext=(max_dd_idx + 10, drawdown[max_dd_idx] - 5),
         arrowprops={"arrowstyle": "->", "color": "black"},
@@ -499,7 +499,7 @@ def plot_portfolio_nav(
     plt.tight_layout()
     if output_path:
         fig.savefig(output_path, dpi=DEFAULT_DPI, bbox_inches="tight")
-        logger.info(f"净值曲线已保存: {output_path}")
+        logger.info(f"NAV曲线已保存: {output_path}")
 
     return fig
 
@@ -541,12 +541,12 @@ def plot_esg_trend_scatter(
     fig, ax = plt.subplots(figsize=(12, 7))
 
     label_colors = {
-        "显著改善": COLOR_PALETTE["green"],
-        "改善": "#27AE60",
-        "稳定": COLOR_PALETTE["gray"],
-        "恶化": COLOR_PALETTE["orange"],
-        "显著恶化": COLOR_PALETTE["red"],
-        "波动": COLOR_PALETTE["purple"],
+        "Significant Improvement": COLOR_PALETTE["green"],
+        "Improvement": "#27AE60",
+        "Stable": COLOR_PALETTE["gray"],
+        "Deterioration": COLOR_PALETTE["orange"],
+        "Significant Deterioration": COLOR_PALETTE["red"],
+        "Volatility": COLOR_PALETTE["purple"],
     }
 
     for label in df[label_col].unique():
@@ -573,9 +573,9 @@ def plot_esg_trend_scatter(
 
     ax.axhline(y=0, color="black", linestyle=":", linewidth=1, alpha=0.5)
     ax.axvline(x=0, color="black", linestyle=":", linewidth=1, alpha=0.5)
-    ax.set_xlabel("ESG 动量分数", fontsize=11)
-    ax.set_ylabel("ESG 趋势分数", fontsize=11)
-    ax.set_title("ESG 趋势分析散点图", fontsize=14, fontweight="bold")
+    ax.set_xlabel("ESG Momentum Score", fontsize=11)
+    ax.set_ylabel("ESG Trend Score", fontsize=11)
+    ax.set_title("ESG Trend Analysis Scatter Plot", fontsize=14, fontweight="bold")
     ax.legend(loc="best", fontsize=9)
 
     plt.tight_layout()
@@ -606,7 +606,7 @@ def plot_dashboard(
     scenario_data : dict
         DCF估值结果
     anomaly_data : pd.Series
-        异常概率序列
+        Anomaly Probability序列
     output_dir : str
         图表输出目录
 
@@ -715,7 +715,7 @@ def plot_contagion_network_plotly(
     ))
 
     fig.update_layout(
-        title="行业 ESG 风险传导网络",
+        title="Industry ESG Risk Contagion Network",
         showlegend=False,
         xaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
         yaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
