@@ -176,11 +176,11 @@ def plot_industry_esg_ranking(latest_df: pd.DataFrame, output_path: str) -> tupl
     bar_height = 0.2
 
     ax.barh([y + bar_height for y in y_pos], g_scores, bar_height,
-            label="治理(G)", color=ESG_COLORS["G"], alpha=0.9)
+            label="Governance (G)", color=ESG_COLORS["G"], alpha=0.9)
     ax.barh(y_pos, s_scores, bar_height,
-            label="社会(S)", color=ESG_COLORS["S"], alpha=0.9)
+            label="Social (S)", color=ESG_COLORS["S"], alpha=0.9)
     ax.barh([y - bar_height for y in y_pos], e_scores, bar_height,
-            label="环境(E)", color=ESG_COLORS["E"], alpha=0.9)
+            label="Environmental (E)", color=ESG_COLORS["E"], alpha=0.9)
 
     # 标注总分
     for i, (ind, total) in enumerate(zip(industries, esg_totals)):
@@ -189,8 +189,8 @@ def plot_industry_esg_ranking(latest_df: pd.DataFrame, output_path: str) -> tupl
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(industries, fontsize=11)
-    ax.set_xlabel("ESG评分", fontsize=12)
-    ax.set_title("各行业ESG评分排名 (E/S/G分解)", fontsize=15, fontweight="bold")
+    ax.set_xlabel("ESG Score", fontsize=12)
+    ax.set_title("Industry ESG Score Ranking (E/S/G Breakdown)", fontsize=15, fontweight="bold")
     ax.legend(loc="lower right", fontsize=10)
     ax.set_xlim(0, 100)
     ax.grid(axis="x", alpha=0.3)
@@ -235,9 +235,9 @@ def plot_esg_timeseries_comparison(df: pd.DataFrame, output_path: str) -> str:
                     color=colors[i % 10], linewidth=2, markersize=6,
                     label=f"{industry}", alpha=0.85)
 
-    ax.set_xlabel("年份", fontsize=12)
-    ax.set_ylabel("ESG总分", fontsize=12)
-    ax.set_title("各行业ESG总分时间趋势 (2019-2024)", fontsize=15, fontweight="bold")
+    ax.set_xlabel("Year", fontsize=12)
+    ax.set_ylabel("ESG Total Score", fontsize=12)
+    ax.set_title("Industry ESG Score Trends (2019-2024)", fontsize=15, fontweight="bold")
     ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1), fontsize=9, ncol=1)
     ax.grid(alpha=0.3)
 
@@ -265,8 +265,8 @@ def plot_contagion_heatmap(latest_df: pd.DataFrame, output_path: str) -> str:
 
     colors_risk = ['#2ECC71' if r < 20 else '#E67E22' if r < 50 else '#E74C3C' for r in risk_scores]
     axes[0].barh(industries, risk_scores, color=colors_risk, alpha=0.85)
-    axes[0].set_xlabel("传导风险评分", fontsize=12)
-    axes[0].set_title("各行业传导风险暴露评分", fontsize=13, fontweight="bold")
+    axes[0].set_xlabel("Contagion Risk Score", fontsize=12)
+    axes[0].set_title("Industry Contagion Risk Exposure Score", fontsize=13, fontweight="bold")
     axes[0].grid(axis="x", alpha=0.3)
     for i, (ind, s) in enumerate(zip(industries, risk_scores)):
         axes[0].annotate(f"{s:.1f}", xy=(s + 0.3, i), va="center", fontsize=9)
@@ -274,8 +274,8 @@ def plot_contagion_heatmap(latest_df: pd.DataFrame, output_path: str) -> str:
     # 右图：受影响的行业数量
     colors_cnt = ['#2ECC71' if c <= 1 else '#E67E22' if c <= 3 else '#E74C3C' for c in affected_counts]
     axes[1].barh(industries, affected_counts, color=colors_cnt, alpha=0.85)
-    axes[1].set_xlabel("受影响行业数", fontsize=12)
-    axes[1].set_title("各行业受影响上游行业数", fontsize=13, fontweight="bold")
+    axes[1].set_xlabel("Affected Industries Count", fontsize=12)
+    axes[1].set_title("Upstream Industries Affecting Each Sector", fontsize=13, fontweight="bold")
     axes[1].grid(axis="x", alpha=0.3)
     for i, (ind, c) in enumerate(zip(industries, affected_counts)):
         axes[1].annotate(f"{int(c)}", xy=(c + 0.05, i), va="center", fontsize=9)
@@ -293,7 +293,7 @@ def plot_contagion_heatmap(latest_df: pd.DataFrame, output_path: str) -> str:
 
 def plot_multi_industry_radar(latest_df: pd.DataFrame, output_path: str) -> str:
     """多个行业的ESG雷达图叠加对比。"""
-    categories = ["环境 (E)", "社会 (S)", "治理 (G)"]
+    categories = ["Environmental (E)", "Social (S)", "Governance (G)"]
     N = len(categories)
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
     angles += angles[:1]
@@ -317,7 +317,7 @@ def plot_multi_industry_radar(latest_df: pd.DataFrame, output_path: str) -> str:
     ax.set_ylim(0, 100)
     ax.set_yticks([20, 40, 60, 80, 100])
     ax.set_yticklabels(["20", "40", "60", "80", "100"], fontsize=8)
-    ax.set_title("各行业ESG维度雷达图对比", fontsize=15, fontweight="bold", pad=25)
+    ax.set_title("Multi-Industry ESG Radar Comparison", fontsize=15, fontweight="bold", pad=25)
 
     # 图例放在外面
     ax.legend(loc="upper right", bbox_to_anchor=(1.35, 1.1), fontsize=8, ncol=1)
@@ -371,17 +371,17 @@ def plot_industry_attractiveness(latest_df: pd.DataFrame, output_path: str) -> s
 
     # 象限标签
     ax.text(80, max(latest_df["expected_upside_pct"].max() * 0.85, 10),
-            "高ESG + 正回报 ★★★", fontsize=11, color="#2ECC71", ha="center")
+            "High ESG + Positive Return ★★★", fontsize=11, color="#2ECC71", ha="center")
     ax.text(40, max(latest_df["expected_upside_pct"].max() * 0.85, 10),
-            "低ESG + 正回报 ★★", fontsize=11, color="#F18F01", ha="center")
+            "Low ESG + Positive Return ★★", fontsize=11, color="#F18F01", ha="center")
     ax.text(80, min(latest_df["expected_upside_pct"].min() * 0.7, -10),
-            "高ESG + 负回报 ★", fontsize=11, color="#3498DB", ha="center")
+            "High ESG + Negative Return ★", fontsize=11, color="#3498DB", ha="center")
     ax.text(40, min(latest_df["expected_upside_pct"].min() * 0.7, -10),
-            "低ESG + 负回报 ☆", fontsize=11, color="#E74C3C", ha="center")
+            "Low ESG + Negative Return ☆", fontsize=11, color="#E74C3C", ha="center")
 
-    ax.set_xlabel("ESG总分", fontsize=12)
-    ax.set_ylabel("期望上行空间 (%)", fontsize=12)
-    ax.set_title("行业投资吸引力矩阵 (ESG × 估值空间)", fontsize=15, fontweight="bold")
+    ax.set_xlabel("ESG Total Score", fontsize=12)
+    ax.set_ylabel("Expected Upside (%)", fontsize=12)
+    ax.set_title("Investment Attractiveness Matrix (ESG × Valuation Upside)", fontsize=15, fontweight="bold")
     ax.grid(alpha=0.3)
 
     plt.tight_layout()
@@ -421,9 +421,9 @@ def plot_esg_momentum_bubble(latest_df: pd.DataFrame, output_path: str) -> str:
                     xytext=(0, 12), fontsize=10, fontweight="bold", ha="center")
 
     ax.axhline(y=0, color="black", linestyle="--", linewidth=1, alpha=0.5)
-    ax.set_xlabel("ESG总分", fontsize=12)
-    ax.set_ylabel("ESG动量分数", fontsize=12)
-    ax.set_title("行业ESG质量与动量分析 (气泡大小=财务健康度)", fontsize=15, fontweight="bold")
+    ax.set_xlabel("ESG Total Score", fontsize=12)
+    ax.set_ylabel("ESG Momentum Score", fontsize=12)
+    ax.set_title("ESG Quality & Momentum (Bubble Size = Financial Health)", fontsize=15, fontweight="bold")
     ax.grid(alpha=0.3)
 
     plt.tight_layout()
