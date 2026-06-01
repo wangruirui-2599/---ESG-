@@ -400,7 +400,9 @@ def plot_industry_weight_heatmap(
     """
     fig, ax = plt.subplots(figsize=(10, max(8, len(weight_df) * 0.35)))
 
-    heatmap_data = weight_df.set_index("industry")[["E_weight", "S_weight", "G_weight"]]
+    df_copy = weight_df.copy()
+    df_copy["industry"] = df_copy["industry"].apply(lambda x: get_english_industry_name(str(x)))
+    heatmap_data = df_copy.set_index("industry")[["E_weight", "S_weight", "G_weight"]]
 
     sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="YlOrRd",
                 vmin=0, vmax=0.6, linewidths=0.5, cbar_kws={"label": "Weight"}, ax=ax)

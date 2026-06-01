@@ -32,6 +32,7 @@ from src.reporting.visualizer import (
     plot_esg_radar, plot_dcf_scenario_waterfall,
     plot_anomaly_distribution, plot_esg_trend_scatter,
     save_all_figures_close, COLOR_PALETTE, ESG_COLORS,
+    get_english_industry_name, INDUSTRY_NAME_MAP,
 )
 
 import matplotlib
@@ -188,7 +189,7 @@ def plot_industry_esg_ranking(latest_df: pd.DataFrame, output_path: str) -> tupl
                     va="center", fontsize=10, fontweight="bold")
 
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(industries, fontsize=11)
+    ax.set_yticklabels([get_english_industry_name(i) for i in industries], fontsize=11)
     ax.set_xlabel("ESG Score", fontsize=12)
     ax.set_title("Industry ESG Score Ranking (E/S/G Breakdown)", fontsize=15, fontweight="bold")
     ax.legend(loc="lower right", fontsize=10)
@@ -233,7 +234,7 @@ def plot_esg_timeseries_comparison(df: pd.DataFrame, output_path: str) -> str:
             years = ind_data["report_year"].values if "report_year" in ind_data.columns else range(len(ind_data))
             ax.plot(years, ind_data["ESG_total"].values, 'o-',
                     color=colors[i % 10], linewidth=2, markersize=6,
-                    label=f"{industry}", alpha=0.85)
+                    label=f"{get_english_industry_name(industry)}", alpha=0.85)
 
     ax.set_xlabel("Year", fontsize=12)
     ax.set_ylabel("ESG Total Score", fontsize=12)
@@ -259,7 +260,7 @@ def plot_contagion_heatmap(latest_df: pd.DataFrame, output_path: str) -> str:
     # 左图：行业风险传导评分
     df_sorted = latest_df.sort_values("contagion_risk_score", ascending=True) if "contagion_risk_score" in latest_df.columns else latest_df
 
-    industries = df_sorted["industry"].tolist()
+    industries = [get_english_industry_name(i) for i in df_sorted["industry"].tolist()]
     risk_scores = df_sorted["contagion_risk_score"].tolist() if "contagion_risk_score" in df_sorted.columns else [0] * len(industries)
     affected_counts = df_sorted["affected_by_count"].tolist() if "affected_by_count" in df_sorted.columns else [0] * len(industries)
 
@@ -309,7 +310,7 @@ def plot_multi_industry_radar(latest_df: pd.DataFrame, output_path: str) -> str:
         values += values[:1]
         ax.fill(angles, values, alpha=0.05, color=colors[i])
         ax.plot(angles, values, 'o-', linewidth=1.8, color=colors[i],
-                label=f"{row.get('industry', '?')} (ESG:{row.get('ESG_total', 0):.0f})",
+                label=f"{get_english_industry_name(str(row.get('industry', '?')))} (ESG:{row.get('ESG_total', 0):.0f})",
                 markersize=5)
 
     ax.set_xticks(angles[:-1])
@@ -357,7 +358,7 @@ def plot_industry_attractiveness(latest_df: pd.DataFrame, output_path: str) -> s
             quadrant = "低ESG+负回报"
 
         ax.scatter(x, y, c=color, s=200, alpha=0.75, edgecolors="white", linewidth=1.5)
-        ax.annotate(industry, (x, y), textcoords="offset points",
+        ax.annotate(get_english_industry_name(str(industry)), (x, y), textcoords="offset points",
                     xytext=(8, 8), fontsize=10, fontweight="bold")
 
         # 添加气泡大小表示市场关注度
@@ -417,7 +418,7 @@ def plot_esg_momentum_bubble(latest_df: pd.DataFrame, output_path: str) -> str:
             color = "#E74C3C"
 
         ax.scatter(x, y, s=bubble_size, c=color, alpha=0.7, edgecolors="white", linewidth=1.5)
-        ax.annotate(industry, (x, y), textcoords="offset points",
+        ax.annotate(get_english_industry_name(str(industry)), (x, y), textcoords="offset points",
                     xytext=(0, 12), fontsize=10, fontweight="bold", ha="center")
 
     ax.axhline(y=0, color="black", linestyle="--", linewidth=1, alpha=0.5)
